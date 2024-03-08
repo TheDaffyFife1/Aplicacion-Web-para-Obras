@@ -1,4 +1,6 @@
 from django.db import models
+from .roles import ADMIN_ROLE, RH_ROLE, USER_ROLE
+from django.contrib.auth.models import User
 
 # Create your models here.
 
@@ -65,3 +67,15 @@ class EmpleadoEliminado(models.Model):
     class Meta:
         verbose_name = "empleado eliminado"
         verbose_name_plural = "empleados eliminados"
+
+#Modelo de Rol del usuario
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    role = models.CharField(max_length=50, choices=[
+        (ADMIN_ROLE, 'Admin'),
+        (RH_ROLE, 'RH'),
+        (USER_ROLE, 'User'),
+    ])
+
+    def __str__(self):
+        return self.user.username
