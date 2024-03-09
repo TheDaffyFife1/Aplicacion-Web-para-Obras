@@ -1,7 +1,7 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import Group
 from .roles import ADMIN_ROLE, RH_ROLE, USER_ROLE
-from .models import UserProfile
+from .models import UserProfile,Obra
 from django.contrib.auth.decorators import login_required
 from .RegistrationForm import RegistrationForm
 from django.contrib.auth import login
@@ -30,15 +30,34 @@ def admin_dashboard(request):
 
 @login_required
 def rh_dashboard(request):
-    if request.user.userprofile.role != RH_ROLE:
+    user_profile = request.user.userprofile
+    if user_profile.role == RH_ROLE:
+        # Asumiendo que 'obra_id' es un campo en el modelo de UserProfile para el ID de la obra.
+        obra_id = user_profile.obra_id
+        if obra_id:
+            obra = get_object_or_404(Obra, id=obra_id)
+            # Puedes pasar 'obra' al contexto si la plantilla necesita mostrar información sobre la obra
+            return render(request, 'rh_dashboard.html', {'obra': obra})
+        else:
+            # Manejar el caso de que no haya un ID de obra asociado
+            return HttpResponseForbidden("Este usuario de RH no tiene una obra asignada.")
+    else:
         return HttpResponseForbidden("No tienes permiso para ver esta página.")
-    return render(request, 'rh_dashboard.html')
 
 @login_required
 def user_asistencia(request):
-    if request.user.userprofile.role != USER_ROLE:
+    user_profile = request.user.userprofile
+    if user_profile.role == USER_ROLE:
+        obra_id = user_profile.obra_id
+        if obra_id:
+            obra = get_object_or_404(Obra, id=obra_id)
+            # La lógica para mostrar la asistencia del usuario en la obra
+            return render(request,'user_asistencia.html', {'obra': obra})
+        else:
+            # Manejar el caso de que no haya un ID de obra asociado
+            return HttpResponseForbidden("Este usuario no tiene una obra asignada.")
+    else:
         return HttpResponseForbidden("No tienes permiso para ver esta página.")
-    return render(request,'user_asistencia.html')
 
 def register(request):
     if request.method == 'POST':

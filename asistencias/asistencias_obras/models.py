@@ -77,6 +77,7 @@ class UserProfile(models.Model):
         (RH_ROLE, 'RH'),
         (USER_ROLE, 'User'),
     ])
+    obra = models.ForeignKey(Obra, on_delete=models.CASCADE, verbose_name="Obra", null=True, blank=True)
 
     def __str__(self):
         return self.user.username
