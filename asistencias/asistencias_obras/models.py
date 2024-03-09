@@ -1,6 +1,7 @@
 from django.db import models
 from .roles import ADMIN_ROLE, RH_ROLE, USER_ROLE
 from django.contrib.auth.models import User
+import uuid
 
 # Create your models here.
 
@@ -70,7 +71,7 @@ class EmpleadoEliminado(models.Model):
 
 #Modelo de Rol del usuario
 class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
     role = models.CharField(max_length=50, choices=[
         (ADMIN_ROLE, 'Admin'),
         (RH_ROLE, 'RH'),

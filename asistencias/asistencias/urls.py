@@ -15,13 +15,18 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from asistencias_obras.views import accesos
+from asistencias_obras.views import accesos, register, admin_dashboard, rh_dashboard, user_asistencia
 from django.contrib.auth import views as auth_views
+from asistencias_obras import views
 
 urlpatterns = [
-    path('', auth_views.LoginView.as_view(template_name='login.html'), name='login'),  # Redirige la ruta raíz al login
+    path('', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
-    path('dashboard/', accesos, name='dashboard'),
-    # Otras rutas de tu aplicación
+    path('register/', register, name='register'),
+    path('accesos/', views.accesos, name='accesos'),
+    path('admin_dashboard/', admin_dashboard, name='admin_dashboard'),
+    path('rh_dashboard/', rh_dashboard, name='rh_dashboard'),
+    path('user_asistencia/', user_asistencia, name='user_asistencia'),
+    # ... other paths ...
 ]
