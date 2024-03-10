@@ -1,0 +1,23 @@
+{% block content %}
+<h2>Lista de Obras</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Ubicación</th>
+            <th>Descripción</th>
+            <th>Presupuesto</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for obra in obras %}
+        <tr>
+            <td>{{ obra.nombre }}</td>
+            <td>{{ obra.ubicacion }}</td>
+            <td>{{ obra.descripcion }}</td>
+            <td>{{ obra.presupuesto }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

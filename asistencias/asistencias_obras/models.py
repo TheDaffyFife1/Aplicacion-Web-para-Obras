@@ -23,7 +23,7 @@ class Obra(models.Model):
     nombre = models.CharField(max_length=100, verbose_name="Nombre de la Obra")
     ubicacion = models.CharField(max_length=100, verbose_name="Ubicación", null=True, blank=True)
     descripcion = models.TextField(verbose_name="Descripción", null=True, blank=True)
-
+    presupuesto = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Presupuesto", null=True, blank=True)
     def __str__(self):
         return self.nombre
         

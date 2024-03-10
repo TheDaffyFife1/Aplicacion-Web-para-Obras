@@ -7,6 +7,7 @@ from .RegistrationForm import RegistrationForm
 from django.contrib.auth import login
 from django.db import IntegrityError
 from django.http import HttpResponseForbidden
+from .RegistrationObra import ObraForm
 
 @login_required
 def accesos(request):
@@ -92,3 +93,26 @@ def register(request):
         form = RegistrationForm()
     
     return render(request, 'registration/registro.html', {'form': form})
+
+def crear_obra(request):
+    """
+    Vista para crear una nueva obra. Maneja solicitudes GET para mostrar el formulario y POST para procesar el formulario.
+    """
+    if request.method == 'POST':
+        form = ObraForm(request.POST)
+        if form.is_valid():
+            form.save()
+            # Reemplaza 'lista_obras' con el nombre de la ruta de la vista a la que deseas redirigir
+            return redirect('lista_obras')
+    else:
+        form = ObraForm()  # Inicializa un formulario en blanco para solicitudes GET
+
+    # Renderiza el template con el formulario, sea nuevo o con errores
+    return render(request, 'registro_obra.html', {'form': form})
+
+def lista_obras(request):
+    """
+    Vista para listar todas las obras registradas en la base de datos.
+    """
+    obras = Obra.objects.all()  # Recupera todas las obras
+    return render(request, 'lista_obras.html', {'obras': obras})
