@@ -24,6 +24,11 @@ class Obra(models.Model):
     ubicacion = models.CharField(max_length=100, verbose_name="Ubicación", null=True, blank=True)
     descripcion = models.TextField(verbose_name="Descripción", null=True, blank=True)
     presupuesto = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Presupuesto", null=True, blank=True)
+    activa = models.BooleanField(default=True)  # Campo para activar/inactivar
+    fecha_inicio = models.DateField(null=True, blank=True)  # Opcional, para rango de fechas
+    fecha_fin = models.DateField(null=True, blank=True)  # Opcional, para rango de fechas
+
+    
     def __str__(self):
         return self.nombre
         

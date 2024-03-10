@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from asistencias_obras.views import lista_obras,accesos, register, admin_dashboard, rh_dashboard, user_asistencia,crear_obra
+from asistencias_obras.views import lista_obras,accesos, register, admin_dashboard, rh_dashboard, user_asistencia,crear_obra,cambiar_estado_obra, eliminar_obra, editar_obra
 from django.contrib.auth import views as auth_views
 from asistencias_obras import views
 
@@ -23,12 +23,17 @@ urlpatterns = [
     path('', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
-    path('register/', register, name='register'),
+    path('registro/', register, name='register'),
     path('accesos/', views.accesos, name='accesos'),
     path('admin_dashboard/', admin_dashboard, name='admin_dashboard'),
     path('rh_dashboard/', rh_dashboard, name='rh_dashboard'),
     path('user_asistencia/', user_asistencia, name='user_asistencia'),
     path('obra/crear/', crear_obra, name='crear_obra'),
+    path('obras/', views.lista_obras, name='lista_obras'),
+    path('obra/cambiar_estado/<int:obra_id>/', views.cambiar_estado_obra, name='cambiar_estado_obra'),
+    path('obra/eliminar/<int:obra_id>/', views.eliminar_obra, name='eliminar_obra'),
     path('obras/', lista_obras, name='lista_obras'),
+    path('obra/editar/<int:obra_id>/', editar_obra, name='editar_obra'),
+
     # ... other paths ...
 ]

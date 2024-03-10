@@ -1,5 +1,6 @@
 {% block content %}
 <h2>Lista de Obras</h2>
+<a href="{% url 'crear_obra' %}">Crear obra</a>
 <table>
     <thead>
         <tr>
@@ -16,8 +17,15 @@
             <td>{{ obra.ubicacion }}</td>
             <td>{{ obra.descripcion }}</td>
             <td>{{ obra.presupuesto }}</td>
+            <td>{{ obra.activa|yesno:"Activa,Inactiva" }}</td>
+            <td>
+                <a href="{% url 'cambiar_estado_obra' obra.id %}">Activar/Inactivar</a> |
+                <a href="{% url 'eliminar_obra' obra.id %}">Eliminar</a> |
+                <a href="{% url 'editar_obra' obra.id %}">Modificar</a>  <!-- Asumiendo que tienes una vista de edición -->
+            </td>
         </tr>
         {% endfor %}
     </tbody>
+    
 </table>
 {% endblock %}

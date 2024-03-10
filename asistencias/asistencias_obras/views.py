@@ -6,8 +6,9 @@ from django.contrib.auth.decorators import login_required
 from .RegistrationForm import RegistrationForm
 from django.contrib.auth import login
 from django.db import IntegrityError
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, HttpResponseRedirect
 from .RegistrationObra import ObraForm
+from django.urls import reverse
 
 @login_required
 def accesos(request):
@@ -108,11 +109,32 @@ def crear_obra(request):
         form = ObraForm()  # Inicializa un formulario en blanco para solicitudes GET
 
     # Renderiza el template con el formulario, sea nuevo o con errores
-    return render(request, 'registro_obra.html', {'form': form})
+    return render(request, 'obras/registro_obra.html', {'form': form})
 
 def lista_obras(request):
     """
     Vista para listar todas las obras registradas en la base de datos.
     """
     obras = Obra.objects.all()  # Recupera todas las obras
-    return render(request, 'lista_obras.html', {'obras': obras})
+    return render(request, 'obras/lista_obras.html', {'obras': obras})
+
+def cambiar_estado_obra(request, obra_id):
+    obra = Obra.objects.get(id=obra_id)
+    obra.activa = not obra.activa
+    obra.save()
+    return HttpResponseRedirect(reverse('lista_obras'))
+
+def eliminar_obra(request, obra_id):
+    Obra.objects.get(id=obra_id).delete()
+    return HttpResponseRedirect(reverse('lista_obras'))
+
+def editar_obra(request, obra_id):
+    obra = get_object_or_404(Obra, id=obra_id)
+    if request.method == 'POST':
+        form = ObraForm(request.POST, instance=obra)
+        if form.is_valid():
+            form.save()
+            return redirect('lista_obras')
+    else:
+        form = ObraForm(instance=obra)
+    return render(request, 'obras/editar_obra.html', {'form': form, 'obra': obra})
