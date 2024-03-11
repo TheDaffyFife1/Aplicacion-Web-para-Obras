@@ -29,8 +29,16 @@
                 {% endif %}
             </td>
             <td>
+                {% if empleado.codigo_qr %}
+                <img src="{{ empleado.codigo_qr.url }}" alt="Código QR de {{ empleado.nombre }}">
+            {% else %}
+                <p>No hay código QR disponible.</p>
+            {% endif %}
+            </td>
+            
+            <td>
                 <!-- Asumiendo que tienes una vista 'editar_empleado' para editar empleados -->
-                <!-- <a href="{% url 'crear_empleado' empleado.id %}">Editar</a> -->
+                <a href="{% url 'editar_empleado' empleado.id %}">Editar</a>
             </td>
         </tr>
         {% endfor %}

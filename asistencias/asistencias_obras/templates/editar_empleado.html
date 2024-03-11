@@ -1,0 +1,8 @@
+{% block content %}
+<h2>Editar Empleado</h2>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Actualizar Empleado</button>
+</form>
+{% endblock %}

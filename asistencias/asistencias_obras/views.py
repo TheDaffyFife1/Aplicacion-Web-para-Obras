@@ -13,6 +13,7 @@ from .FormAsignarObra import AsignarObraForm
 from .FormEmpleado import EmpleadoForm
 from django.core.serializers import serialize
 import json
+from django import forms
 
 @login_required
 def accesos(request):
@@ -61,28 +62,46 @@ def crear_empleado(request):
                 form = EmpleadoForm(request.POST, request.FILES)
                 if form.is_valid():
                     empleado = form.save(commit=False)
-                    if not empleado.pk:  # Si es un nuevo empleado
-                        empleado.sueldo = empleado.puesto.sueldo_base
-                    empleado.obra_id = obra_id  # Asegúrate de asignar la obra correcta
+                    # Establece la obra al empleado antes de guardar
+                    empleado.obra_id = obra_id
                     empleado.save()
                     return redirect('lista_empleados')
             else:
-                form = EmpleadoForm()
+                # Inicializa el formulario con la obra del usuario RH
+                form = EmpleadoForm(initial={'obra': obra_id})
+                # Oculta el campo 'obra' ya que no queremos que sea editable
+                form.fields['obra'].widget = forms.HiddenInput()
             
-            # Obtén los sueldos base de todos los puestos y conviértelos en un diccionario de Python
             sueldos_base = {str(puesto.id): str(puesto.sueldo_base) for puesto in Puesto.objects.all()}
-            # Convierte el diccionario de sueldos base a JSON
             sueldos_base_json = json.dumps(sueldos_base)
             
             return render(request, 'registro_empleados.html', {
                 'form': form,
-                'sueldos_base': sueldos_base_json,  # Pasa sueldos_base como JSON al template
+                'sueldos_base': sueldos_base_json,  # Pass 'sueldos_base' as JSON to the template
             })
         else:
             return HttpResponseForbidden("Este usuario de RH no tiene una obra asignada.")
     else:
-        return HttpResponseForbidden("No tienes permiso para ver esta página.")
+        return HttpResponseForbidden("No tienes permiso para ver esta página.") 
     
+@login_required
+def lista_empleados(request):
+    user_profile = request.user.userprofile
+    if user_profile.role == RH_ROLE:
+        # Asumiendo que 'obra_id' es un campo en el modelo de UserProfile para el ID de la obra.
+        obra_id = user_profile.obra_id
+        if obra_id:
+            obra = get_object_or_404(Obra, id=obra_id)
+            # Puedes pasar 'obra' al contexto si la plantilla necesita mostrar información sobre la obra
+            empleados = Empleado.objects.filter(obra_id=obra)
+            return render(request, 'lista_empleados.html', {'empleados': empleados, 'obra': obra})
+        else:
+            # Manejar el caso de que no haya un ID de obra asociado
+            return HttpResponseForbidden("Este usuario de RH no tiene una obra asignada.")
+    else:
+        return HttpResponseForbidden("No tienes permiso para ver esta página.")
+
+
 
 @login_required
 def user_asistencia(request):
@@ -200,19 +219,15 @@ def lista_user_profiles(request):
     return render(request, 'lista_user_profiles.html', {'user_profiles': user_profiles})
 
 @login_required
-def lista_empleados(request):
-    user_profile = request.user.userprofile
-    if user_profile.role == RH_ROLE:
-        # Asumiendo que 'obra_id' es un campo en el modelo de UserProfile para el ID de la obra.
-        obra_id = user_profile.obra_id
-        if obra_id:
-            obra = get_object_or_404(Obra, id=obra_id)
-            # Puedes pasar 'obra' al contexto si la plantilla necesita mostrar información sobre la obra
-            empleados = Empleado.objects.filter(obra_id=obra)
-            return render(request, 'lista_empleados.html', {'empleados': empleados, 'obra': obra})
-        else:
-            # Manejar el caso de que no haya un ID de obra asociado
-            return HttpResponseForbidden("Este usuario de RH no tiene una obra asignada.")
+def editar_empleado(request, empleado_id):
+    empleado = get_object_or_404(Empleado, id=empleado_id)
+    
+    if request.method == 'POST':
+        form = EmpleadoForm(request.POST, request.FILES, instance=empleado)
+        if form.is_valid():
+            form.save()
+            return redirect('lista_empleados')  # Asume que tienes esta vista y URL definidas
     else:
-        return HttpResponseForbidden("No tienes permiso para ver esta página.")
-
+        form = EmpleadoForm(instance=empleado)
+    
+    return render(request, 'editar_empleado.html', {'form': form, 'empleado': empleado})

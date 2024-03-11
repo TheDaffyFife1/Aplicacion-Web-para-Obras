@@ -2,6 +2,9 @@ from django.db import models
 from .roles import ADMIN_ROLE, RH_ROLE, USER_ROLE
 from django.contrib.auth.models import User
 import uuid
+from io import BytesIO
+import qrcode
+from django.core.files.base import ContentFile
 
 # Create your models here.
 
@@ -45,6 +48,7 @@ class Empleado(models.Model):
     num_identificacion = models.IntegerField(verbose_name="Número de Identificación")
     sueldo = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Sueldo", null=True, blank=True)
     fotografia = models.ImageField(upload_to='fotos_empleados/', verbose_name="Fotografía", null=True, blank=True)
+    codigo_qr = models.ImageField(upload_to='codigos_qr_empleados/', verbose_name="Código QR", null=True, blank=True)
 
     def __str__(self):
         return f"{self.nombre} {self.apellido} ({self.num_identificacion})"
@@ -52,6 +56,27 @@ class Empleado(models.Model):
     def save(self, *args, **kwargs):
         if not self.sueldo:
             self.sueldo = self.puesto.sueldo_base
+        super(Empleado, self).save(*args, **kwargs)
+
+        # Generación del código QR
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(f'{self.nombre} {self.apellido} ({self.num_identificacion})')
+        qr.make(fit=True)
+
+        img = qr.make_image(fill_color="black", back_color="white")
+
+        # Guardar el código QR como una imagen en el campo correspondiente
+        temp_handle = BytesIO()
+        img.save(temp_handle, 'PNG')
+        temp_handle.seek(0)
+        self.codigo_qr.save(f'codigo_qr_{self.num_identificacion}.png', ContentFile(temp_handle.read()), save=False)
+        temp_handle.close()
+
         super(Empleado, self).save(*args, **kwargs)
 
     class Meta:
@@ -67,6 +92,7 @@ class EmpleadoEliminado(models.Model):
     obra = models.CharField(max_length=100)
     num_identificacion = models.IntegerField()
     fotografia = models.ImageField(upload_to='fotos_empleados/', verbose_name="Fotografía", null=True, blank=True)
+    codigo_qr = models.ImageField(upload_to='codigos_qr_empleados/', verbose_name="Código QR", null=True, blank=True)
 
     fecha_eliminacion = models.DateTimeField(auto_now_add=True)
 
