@@ -1,0 +1,11 @@
+{% block content %}
+<h2>Asignar Obra a Usuario</h2>
+
+<!-- Asume que la acción del formulario apunta a la vista actual y utiliza el método POST -->
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}  <!-- Renderiza los campos del formulario como párrafos -->
+    <button type="submit">Asignar Obra</button>
+</form>
+
+{% endblock %}

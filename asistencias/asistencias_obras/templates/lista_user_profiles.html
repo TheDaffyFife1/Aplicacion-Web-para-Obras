@@ -1,0 +1,27 @@
+{% block content %}
+<h2>Asignaciones de Obras</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>Usuario</th>
+            <th>Rol</th>
+            <th>Obra Asignada</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for profile in user_profiles %}
+        <tr>
+            <td>{{ profile.user.username }}</td>
+            <td>{{ profile.get_role_display }}</td>
+            <td>{{ profile.obra.nombre|default:"N/A" }}</td>
+            <td>
+                <!-- Asumiendo que tienes una vista para asignar/editar la obra de un user profile -->
+                <a href="{% url 'asignar_obra_a_usuario' profile.user.id %}">Asignar/Editar Obra</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

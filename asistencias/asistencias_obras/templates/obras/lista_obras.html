@@ -8,6 +8,8 @@
             <th>Ubicación</th>
             <th>Descripción</th>
             <th>Presupuesto</th>
+            <th>Fecha de Inicio</th>
+            <th>Fecha de Fin</th>
         </tr>
     </thead>
     <tbody>
@@ -17,6 +19,8 @@
             <td>{{ obra.ubicacion }}</td>
             <td>{{ obra.descripcion }}</td>
             <td>{{ obra.presupuesto }}</td>
+            <td>{{ obra.fecha_inicio }}</td>
+            <td>{{ obra.fecha_fin }}</td>
             <td>{{ obra.activa|yesno:"Activa,Inactiva" }}</td>
             <td>
                 <a href="{% url 'cambiar_estado_obra' obra.id %}">Activar/Inactivar</a> |

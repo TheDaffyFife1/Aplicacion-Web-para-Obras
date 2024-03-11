@@ -9,6 +9,7 @@ from django.db import IntegrityError
 from django.http import HttpResponseForbidden, HttpResponseRedirect
 from .RegistrationObra import ObraForm
 from django.urls import reverse
+from .FormAsignarObra import AsignarObraForm
 
 @login_required
 def accesos(request):
@@ -138,3 +139,25 @@ def editar_obra(request, obra_id):
     else:
         form = ObraForm(instance=obra)
     return render(request, 'obras/editar_obra.html', {'form': form, 'obra': obra})
+
+def asignar_obra_a_usuario(request, user_profile_id):
+    user_profile = get_object_or_404(UserProfile, pk=user_profile_id)
+    if request.method == 'POST':
+        form = AsignarObraForm(request.POST, instance=user_profile)
+        if form.is_valid():
+            # Asegúrate de que el usuario es RH o User antes de guardar
+            if user_profile.role in [RH_ROLE, USER_ROLE]:
+                form.save()
+                return redirect('lista_user_profiles')
+            else:
+                # Manejar el caso en que el rol no es permitido para la asignación
+                pass  # Puedes redirigir o mostrar un mensaje de error
+    else:
+        form = AsignarObraForm(instance=user_profile)
+
+    return render(request, 'asignar_obra.html', {'form': form, 'user_profile': user_profile})
+
+def lista_user_profiles(request):
+    # Si deseas filtrar por roles específicos, puedes hacerlo aquí
+    user_profiles = UserProfile.objects.filter(role__in=[RH_ROLE, USER_ROLE])
+    return render(request, 'lista_user_profiles.html', {'user_profiles': user_profiles})

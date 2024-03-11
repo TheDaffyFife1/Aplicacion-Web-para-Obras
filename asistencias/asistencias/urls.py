@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from asistencias_obras.views import lista_obras,accesos, register, admin_dashboard, rh_dashboard, user_asistencia,crear_obra,cambiar_estado_obra, eliminar_obra, editar_obra
+from asistencias_obras.views import lista_obras,accesos, register, admin_dashboard, rh_dashboard, user_asistencia,crear_obra,cambiar_estado_obra, eliminar_obra, editar_obra,lista_user_profiles,asignar_obra_a_usuario
 from django.contrib.auth import views as auth_views
 from asistencias_obras import views
 
@@ -34,6 +34,8 @@ urlpatterns = [
     path('obra/eliminar/<int:obra_id>/', views.eliminar_obra, name='eliminar_obra'),
     path('obras/', lista_obras, name='lista_obras'),
     path('obra/editar/<int:obra_id>/', editar_obra, name='editar_obra'),
+    path('asignaciones/', lista_user_profiles, name='lista_user_profiles'),
+    path('user_profile/<int:user_profile_id>/asignar_obra/', asignar_obra_a_usuario, name='asignar_obra_a_usuario'),
 
     # ... other paths ...
 ]
