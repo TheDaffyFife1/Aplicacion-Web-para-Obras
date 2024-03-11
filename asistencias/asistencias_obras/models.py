@@ -44,6 +44,7 @@ class Empleado(models.Model):
     obra = models.ForeignKey(Obra, on_delete=models.CASCADE, verbose_name="Obra")
     num_identificacion = models.IntegerField(verbose_name="Número de Identificación")
     sueldo = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Sueldo", null=True, blank=True)
+    fotografia = models.ImageField(upload_to='fotos_empleados/', verbose_name="Fotografía", null=True, blank=True)
 
     def __str__(self):
         return f"{self.nombre} {self.apellido} ({self.num_identificacion})"
@@ -65,6 +66,8 @@ class EmpleadoEliminado(models.Model):
     puesto = models.CharField(max_length=100)
     obra = models.CharField(max_length=100)
     num_identificacion = models.IntegerField()
+    fotografia = models.ImageField(upload_to='fotos_empleados/', verbose_name="Fotografía", null=True, blank=True)
+
     fecha_eliminacion = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

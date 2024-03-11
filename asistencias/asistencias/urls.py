@@ -13,11 +13,16 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
+
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path
-from asistencias_obras.views import lista_obras,accesos, register, admin_dashboard, rh_dashboard, user_asistencia,crear_obra,cambiar_estado_obra, eliminar_obra, editar_obra,lista_user_profiles,asignar_obra_a_usuario
+from asistencias_obras.views import lista_obras,accesos, register, admin_dashboard, rh_dashboard, user_asistencia,crear_obra,cambiar_estado_obra, eliminar_obra, editar_obra,lista_user_profiles,asignar_obra_a_usuario,lista_empleados,crear_empleado
 from django.contrib.auth import views as auth_views
 from asistencias_obras import views
+
 
 urlpatterns = [
     path('', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
@@ -36,6 +41,11 @@ urlpatterns = [
     path('obra/editar/<int:obra_id>/', editar_obra, name='editar_obra'),
     path('asignaciones/', lista_user_profiles, name='lista_user_profiles'),
     path('user_profile/<int:user_profile_id>/asignar_obra/', asignar_obra_a_usuario, name='asignar_obra_a_usuario'),
+    path('empleados/', views.lista_empleados, name='lista_empleados'),
+    path('crear_empleado/<int:obra_id>/', views.crear_empleado, name='crear_empleado'),
 
     # ... other paths ...
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

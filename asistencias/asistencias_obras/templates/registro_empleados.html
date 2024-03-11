@@ -1,0 +1,22 @@
+{% block content %}
+<!-- Contenido del formulario y demás elementos de la página -->
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Guardar</button>
+</form>
+
+<script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function () {
+        const sueldosBase = JSON.parse('{{ sueldos_base|safe }}');
+        const puestoSelect = document.getElementById('id_puesto');
+        const sueldoInput = document.getElementById('id_sueldo');
+
+        puestoSelect.addEventListener('change', function () {
+            const sueldoBase = sueldosBase[this.value];
+            sueldoInput.value = sueldoBase !== undefined ? sueldoBase : '';
+        });
+    });
+</script>
+{% endblock %}  

@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import Group
 from .roles import ADMIN_ROLE, RH_ROLE, USER_ROLE
-from .models import UserProfile,Obra
+from .models import UserProfile,Obra,Empleado,Puesto
 from django.contrib.auth.decorators import login_required
 from .RegistrationForm import RegistrationForm
 from django.contrib.auth import login
@@ -10,6 +10,9 @@ from django.http import HttpResponseForbidden, HttpResponseRedirect
 from .RegistrationObra import ObraForm
 from django.urls import reverse
 from .FormAsignarObra import AsignarObraForm
+from .FormEmpleado import EmpleadoForm
+from django.core.serializers import serialize
+import json
 
 @login_required
 def accesos(request):
@@ -19,6 +22,7 @@ def accesos(request):
         return redirect('admin_dashboard')
     elif role == RH_ROLE:
         return redirect('rh_dashboard')
+    
     elif role == USER_ROLE:
         return redirect('user_asistencia')
     else:
@@ -46,6 +50,39 @@ def rh_dashboard(request):
             return HttpResponseForbidden("Este usuario de RH no tiene una obra asignada.")
     else:
         return HttpResponseForbidden("No tienes permiso para ver esta página.")
+
+@login_required
+def crear_empleado(request):
+    user_profile = request.user.userprofile
+    if user_profile.role == RH_ROLE:
+        obra_id = user_profile.obra_id
+        if obra_id:
+            if request.method == 'POST':
+                form = EmpleadoForm(request.POST, request.FILES)
+                if form.is_valid():
+                    empleado = form.save(commit=False)
+                    if not empleado.pk:  # Si es un nuevo empleado
+                        empleado.sueldo = empleado.puesto.sueldo_base
+                    empleado.obra_id = obra_id  # Asegúrate de asignar la obra correcta
+                    empleado.save()
+                    return redirect('lista_empleados')
+            else:
+                form = EmpleadoForm()
+            
+            # Obtén los sueldos base de todos los puestos y conviértelos en un diccionario de Python
+            sueldos_base = {str(puesto.id): str(puesto.sueldo_base) for puesto in Puesto.objects.all()}
+            # Convierte el diccionario de sueldos base a JSON
+            sueldos_base_json = json.dumps(sueldos_base)
+            
+            return render(request, 'registro_empleados.html', {
+                'form': form,
+                'sueldos_base': sueldos_base_json,  # Pasa sueldos_base como JSON al template
+            })
+        else:
+            return HttpResponseForbidden("Este usuario de RH no tiene una obra asignada.")
+    else:
+        return HttpResponseForbidden("No tienes permiso para ver esta página.")
+    
 
 @login_required
 def user_asistencia(request):
@@ -161,3 +198,21 @@ def lista_user_profiles(request):
     # Si deseas filtrar por roles específicos, puedes hacerlo aquí
     user_profiles = UserProfile.objects.filter(role__in=[RH_ROLE, USER_ROLE])
     return render(request, 'lista_user_profiles.html', {'user_profiles': user_profiles})
+
+@login_required
+def lista_empleados(request):
+    user_profile = request.user.userprofile
+    if user_profile.role == RH_ROLE:
+        # Asumiendo que 'obra_id' es un campo en el modelo de UserProfile para el ID de la obra.
+        obra_id = user_profile.obra_id
+        if obra_id:
+            obra = get_object_or_404(Obra, id=obra_id)
+            # Puedes pasar 'obra' al contexto si la plantilla necesita mostrar información sobre la obra
+            empleados = Empleado.objects.filter(obra_id=obra)
+            return render(request, 'lista_empleados.html', {'empleados': empleados, 'obra': obra})
+        else:
+            # Manejar el caso de que no haya un ID de obra asociado
+            return HttpResponseForbidden("Este usuario de RH no tiene una obra asignada.")
+    else:
+        return HttpResponseForbidden("No tienes permiso para ver esta página.")
+

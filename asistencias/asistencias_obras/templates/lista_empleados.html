@@ -1,0 +1,39 @@
+{% block content %}
+<h2>Lista de Empleados</h2>
+<a href="{% url 'crear_empleado' %}">Crear Empleado</a>
+<table border="1">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Puesto</th>
+            <th>Número de Identificación</th>
+            <th>Sueldo</th>
+            <th>Fotografía</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for empleado in empleados %}
+        <tr>
+            <td>{{ empleado.nombre }}</td>
+            <td>{{ empleado.apellido }}</td>
+            <td>{{ empleado.puesto.nombre }}</td>
+            <td>{{ empleado.num_identificacion }}</td>
+            <td>{{ empleado.sueldo }}</td>
+            <td>
+                {% if empleado.fotografia %}
+                    <img src="{{ empleado.fotografia.url }}" alt="Fotografía" style="width: 50px; height: auto;">
+                {% else %}
+                    Sin Foto
+                {% endif %}
+            </td>
+            <td>
+                <!-- Asumiendo que tienes una vista 'editar_empleado' para editar empleados -->
+                <!-- <a href="{% url 'crear_empleado' empleado.id %}">Editar</a> -->
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
