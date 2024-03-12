@@ -9,7 +9,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "html5-qrcode": "^2.3.8"
+    "autoprefixer": "^10.4.18",
+    "html5-qrcode": "^2.3.8",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1"
   },
   "description": ""
 }
