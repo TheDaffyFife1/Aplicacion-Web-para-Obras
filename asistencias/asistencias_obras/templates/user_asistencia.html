@@ -1,9 +1,11 @@
+{% load static %}
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <title>Asistencia</title>
-    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode"></script>
+    <script src="{% static 'js/html5-qrcode.min.js' %}"></script>
 </head>
 <body>
     {% if obra %}
@@ -14,7 +16,7 @@
             console.log(`Código QR escaneado = ${decodedText}`, decodedResult);
             
             // Aquí, puedes enviar `decodedText` al backend mediante una solicitud fetch
-            fetch(`/api/registrar_asistencia/`, {
+            fetch(`http://localhost:8000/api/registrar_asistencia/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
