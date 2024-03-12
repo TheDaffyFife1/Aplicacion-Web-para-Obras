@@ -6,38 +6,57 @@
     <meta charset="UTF-8">
     <title>Asistencia</title>
     <script src="{% static 'js/html5-qrcode.min.js' %}"></script>
+    <!-- Ensure CSRF Token is available for AJAX calls -->
+    <script type="text/javascript">
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
 </head>
 <body>
     {% if obra %}
     <div id="qr-reader" style="width:500px;height:500px;"></div>
     <script>
         function onScanSuccess(decodedText, decodedResult) {
-            // Opcional: Mostrar el texto decodificado o realizar una acción al escanear
-            console.log(`Código QR escaneado = ${decodedText}`, decodedResult);
-            
-            // Aquí, puedes enviar `decodedText` al backend mediante una solicitud fetch
-            fetch(`http://localhost:8000/api/registrar_asistencia/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    // Asegúrate de incluir CSRF token si es necesario
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({ codigoQR: decodedText })
-            })
-            .then(response => response.json())
-            .then(data => {
-                // Maneja la respuesta del servidor
-                console.log(data);
-            })
-            .catch(error => console.error('Error:', error));
-        }
+    // Assuming the QR code format is "Name LastName (IDNumber)"
+    let parts = decodedText.split(" "); // Split the decoded text by spaces
+    let idNumber = parts[parts.length - 1]; // Assume the ID number is the last part
 
+    // Use a regex to remove any non-digit characters from idNumber
+    idNumber = idNumber.replace(/\D/g, '');
+
+    fetch(`http://localhost:8000/api/registrar_asistencia/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ num_identificacion: idNumber })
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Handle the response from the server
+        console.log(data);
+    })
+    .catch(error => console.error('Error:', error));
+}
         var html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: 250 });
         html5QrcodeScanner.render(onScanSuccess);
     </script>
     {% else %}
-        <p>Este usuario no tiene una obra asignada o no tienes permiso para ver esta página.</p>
+    <p>Este usuario no tiene una obra asignada o no tienes permiso para ver esta página.</p>
     {% endif %}
 </body>
 </html>
