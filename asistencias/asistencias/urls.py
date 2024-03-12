@@ -22,6 +22,8 @@ from django.urls import path
 from asistencias_obras.views import editar_empleado,lista_obras,accesos, register, admin_dashboard, rh_dashboard, user_asistencia,crear_obra,cambiar_estado_obra, eliminar_obra, editar_obra,lista_user_profiles,asignar_obra_a_usuario,lista_empleados,crear_empleado
 from django.contrib.auth import views as auth_views
 from asistencias_obras import views
+from asistencias_obras.api import registrar_asistencia
+
 
 
 urlpatterns = [
@@ -45,6 +47,7 @@ urlpatterns = [
     path('empleados/crear_empleado/', views.crear_empleado, name='crear_empleado'),
     path('empleados/crear_empleado/<int:obra_id>/', crear_empleado, name='crear_empleado'),
     path('empleados/editar/<int:empleado_id>/', editar_empleado, name='editar_empleado'),
+    path('api/registrar_asistencia/', registrar_asistencia, name='registrar_asistencia'),
 
     # ... other paths ...
 ]

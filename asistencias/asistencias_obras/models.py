@@ -5,7 +5,7 @@ import uuid
 from io import BytesIO
 import qrcode
 from django.core.files.base import ContentFile
-
+from django.utils import timezone
 # Create your models here.
 
 #Modelo Puesto
@@ -115,3 +115,16 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return self.user.username
+    
+class Asistencia(models.Model):
+    empleado = models.ForeignKey(Empleado, on_delete=models.CASCADE)
+    fecha = models.DateField(default=timezone.now)
+    entrada = models.DateTimeField(null=True, blank=True)
+    salida = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.empleado.nombre} {self.fecha}"
+
+    class Meta:
+        verbose_name = "asistencia"
+        verbose_name_plural = "asistencias"
