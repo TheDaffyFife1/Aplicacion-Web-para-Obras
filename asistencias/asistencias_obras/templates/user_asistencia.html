@@ -2,55 +2,40 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Escanear Código QR</title>
+    <title>Asistencia</title>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode"></script>
 </head>
 <body>
-    <video id="preview" style="width:500px" autoplay></video>
-    <canvas id="canvas" style="display:none;"></canvas>
-    <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+    {% if obra %}
+    <div id="qr-reader" style="width:500px;height:500px;"></div>
     <script>
-        const video = document.getElementById('preview');
-        const canvasElement = document.getElementById('canvas');
-        const canvas = canvasElement.getContext('2d');
-
-        function scanQRCode() {
-            // Verifica si el video se ha cargado y está listo para ser procesado
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                // Ajusta el tamaño del canvas al del video capturado
-                canvasElement.height = video.videoHeight;
-                canvasElement.width = video.videoWidth;
-                canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
-                var imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
-                var code = jsQR(imageData.data, imageData.width, imageData.height, {
-                    inversionAttempts: "dontInvert",
-                });
-
-                if (code) {
-                    console.log(`Código QR escaneado: ${code.data}`);
-                    // Detiene el stream y la captura
-                    video.srcObject.getTracks().forEach(track => track.stop());
-                    // Aquí puedes manejar el resultado, como enviar la información a un servidor
-                    alert(`Código QR escaneado: ${code.data}`);
-                } else {
-                    // Si no se encontró un código QR, sigue intentando
-                    requestAnimationFrame(scanQRCode);
-                }
-            } else {
-                // Si el video no está listo, vuelve a intentarlo más tarde
-                requestAnimationFrame(scanQRCode);
-            }
+        function onScanSuccess(decodedText, decodedResult) {
+            // Opcional: Mostrar el texto decodificado o realizar una acción al escanear
+            console.log(`Código QR escaneado = ${decodedText}`, decodedResult);
+            
+            // Aquí, puedes enviar `decodedText` al backend mediante una solicitud fetch
+            fetch(`/api/registrar_asistencia/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Asegúrate de incluir CSRF token si es necesario
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ codigoQR: decodedText })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Maneja la respuesta del servidor
+                console.log(data);
+            })
+            .catch(error => console.error('Error:', error));
         }
 
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-            .then(function(stream) {
-                video.srcObject = stream;
-                video.setAttribute("playsinline", true); // necesario para iPhone
-                video.play();
-                requestAnimationFrame(scanQRCode);
-            })
-            .catch(function(err) {
-                console.error("Error al acceder a la cámara:", err);
-            });
+        var html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: 250 });
+        html5QrcodeScanner.render(onScanSuccess);
     </script>
+    {% else %}
+        <p>Este usuario no tiene una obra asignada o no tienes permiso para ver esta página.</p>
+    {% endif %}
 </body>
 </html>
