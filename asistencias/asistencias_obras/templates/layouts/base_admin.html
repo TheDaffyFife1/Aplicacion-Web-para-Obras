@@ -1,12 +1,28 @@
+{% load static %}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="{% static 'css/output.css' %}" rel="stylesheet">
     <title>Administrador</title>
 </head>
-<body>
-    {% block content %}
-    {% endblock %}
+<body class="bg-gray-100">
+    <nav class="bg-gray-800 p-4">
+        <div class="container mx-auto flex items-center justify-between">
+            <a href="#" class="text-white text-lg">Administrador</a>
+            <div>
+                <a href="/admin_dashboard" class="text-gray-400 hover:text-white px-3 py-2 rounded-md">Dashboard</a>
+                <a href="/obras" class="text-gray-400 hover:text-white px-3 py-2 rounded-md">Obras</a>
+                <a href="/asignaciones" class="text-gray-400 hover:text-white px-3 py-2 rounded-md">Asignaciones</a>
+
+            </div>
+        </div>
+    </nav>
+    <div class="py-8">
+        {% block content %}
+        {% endblock %}
+    </div>
 </body>
 </html>
