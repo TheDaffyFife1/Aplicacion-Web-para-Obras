@@ -13,3 +13,7 @@ class ObraForm(forms.ModelForm):
             'fecha_inicio': 'Fecha de Inicio',
             'fecha_fin': 'Fecha de Fin'
         }
+        widgets = {
+            'fecha_inicio': forms.DateInput(format=('%Y-%m-%d'), attrs={'class': 'form-control', 'placeholder': 'Selecciona una fecha', 'type': 'date'}),
+            'fecha_fin': forms.DateInput(format=('%Y-%m-%d'), attrs={'class': 'form-control', 'placeholder': 'Selecciona una fecha', 'type': 'date'}),
+        }

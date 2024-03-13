@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'asistencias_obras',
     'rest_framework',
     'corsheaders',
+    'widget_tweaks',
+
 ]
 
 MIDDLEWARE = [
