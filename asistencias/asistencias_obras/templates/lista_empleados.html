@@ -1,47 +1,64 @@
+{% extends "layouts/base_rh.html" %}
+
 {% block content %}
-<h2>Lista de Empleados</h2>
-<a href="{% url 'crear_empleado' %}">Crear Empleado</a>
-<table border="1">
-    <thead>
-        <tr>
-            <th>Nombre</th>
-            <th>Apellido</th>
-            <th>Puesto</th>
-            <th>Número de Identificación</th>
-            <th>Sueldo</th>
-            <th>Fotografía</th>
-            <th>Acciones</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for empleado in empleados %}
-        <tr>
-            <td>{{ empleado.nombre }}</td>
-            <td>{{ empleado.apellido }}</td>
-            <td>{{ empleado.puesto.nombre }}</td>
-            <td>{{ empleado.num_identificacion }}</td>
-            <td>{{ empleado.sueldo }}</td>
-            <td>
-                {% if empleado.fotografia %}
-                    <img src="{{ empleado.fotografia.url }}" alt="Fotografía" style="width: 50px; height: auto;">
-                {% else %}
-                    Sin Foto
-                {% endif %}
-            </td>
-            <td>
-                {% if empleado.codigo_qr %}
-                <img src="{{ empleado.codigo_qr.url }}" alt="Código QR de {{ empleado.nombre }}">
-            {% else %}
-                <p>No hay código QR disponible.</p>
-            {% endif %}
-            </td>
-            
-            <td>
-                <!-- Asumiendo que tienes una vista 'editar_empleado' para editar empleados -->
-                <a href="{% url 'editar_empleado' empleado.id %}">Editar</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<h1 class="text-3xl text-black pb-6">Obras</h1>
+
+<div class="w-full mt-6">
+    <p class="text-xl pb-3 flex items-center">
+        <i class="fas fa-list mr-3"></i> Empleados
+    </p>
+    
+    <a href="{% url 'crear_empleado' %}" class="boton-accion boton-editar">Crear Empleado</a>
+<br>
+<br>
+    <div class="bg-white overflow-auto">
+        <table class="min-w-full bg-white">
+            <thead class="bg-gray-800 text-white">
+                <tr>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Nombre</th>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Apellido</th>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Puesto</th>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Número de Identificación</th>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Sueldo</th>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Fotografía</th>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">QR</th>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-700">
+                {% for empleado in empleados %}
+                <tr>
+                    <td class="text-left py-3 px-4">{{ empleado.nombre }}</td>
+                    <td class="text-left py-3 px-4">{{ empleado.apellido }}</td>
+                    <td class="text-left py-3 px-4">{{ empleado.puesto.nombre }}</td>
+                    <td class="text-left py-3 px-4">{{ empleado.num_identificacion }}</td>
+                    <td class="text-left py-3 px-4">{{ empleado.sueldo }}</td>
+                    <td class="text-center py-3 px-4">
+                        {% if empleado.fotografia %}
+                            <img src="{{ empleado.fotografia.url }}" alt="Fotografía" class="foto-empleado">
+                        {% else %}
+                            Sin Foto
+                        {% endif %}
+                    </td>
+                    <td class="text-center py-3 px-4">
+                        {% if empleado.codigo_qr %}
+                        <img src="{{ empleado.codigo_qr.url }}" alt="Código QR de {{ empleado.nombre }}" class="qr-code">
+                        {% else %}
+                        <p>No hay código QR disponible.</p>
+                        {% endif %}
+                    </td>
+                    
+                    <td class="text-center py-3 px-4">
+                        <a href="{% url 'editar_empleado' empleado.id %} " class="boton-accion boton-editar">Editar</a>
+                        <a href="{{ empleado.codigo_qr.url }}" download="QR_{{ empleado.nombre }}.png" class="boton-accion">Descargar QR</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
+
+</div>
+
 {% endblock %}

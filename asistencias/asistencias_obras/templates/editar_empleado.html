@@ -1,8 +1,36 @@
+{% extends "layouts/base_rh.html" %}
+{% load widget_tweaks %}
+
 {% block content %}
-<h2>Editar Empleado</h2>
-<form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Actualizar Empleado</button>
-</form>
+<h1 class="text-3xl text-black pb-6">Empleados</h1>
+
+<div class="flex justify-center">
+  <div class="w-full max-w-lg"> <!-- Establece un ancho máximo para pantallas más grandes -->
+    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+      <p class="text-x pb-6 flex items-center">
+        <i class="fas fa-list mr-3"></i>Editar Empleado
+      </p>
+      <form method="post" class="mb-0 space-y-6">
+        {% csrf_token %}
+        {% for field in form %}
+        <div>
+          <label for="{{ field.id_for_label }}" class="block text-gray-700 text-sm font-bold mb-2">
+            {{ field.label }}
+          </label>
+          {% render_field field class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %}
+          {% if field.help_text %}
+          <p class="text-xs italic text-gray-600">{{ field.help_text }}</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+        <div class="flex justify-center">
+          <button type="submit" class="px-4 py-1 text-white font-light tracking-wider bg-gray-900 rounded">
+            Guardar Obra
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 {% endblock %}

@@ -1,5 +1,40 @@
-<form method="post">
+{% load widget_tweaks %}
+{% load static %}
+
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="h-screen overflow-hidden flex items-center justify-center" style="background: #edf2f7;">
+    <div class="bg-gray-100 flex justify-center items-center h-screen">
+<div class="w-1/2 h-screen hidden lg:block">
+  <img src="{% static 'img/ejemplo2.jpg' %}" alt="Placeholder Image" class="object-cover w-full h-full">
+</div>
+
+<div class="lg:p-36 md:p-52 sm:20 p-8 w-full lg:w-1/2">
+  <h1 class="text-2xl font-semibold mb-4">Login</h1>
+  <form method="post">
     {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Login</button>
+        {% for field in form %}
+        <div class="mb-4">
+          <label for="{{ field.id_for_label }}" class="block text-gray-700 text-sm font-bold mb-2">
+            {{ field.label }}
+          </label>
+          {% render_field field class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %}
+          {% if field.help_text %}
+          <p class="text-xs italic text-gray-600">{{ field.help_text }}</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-md py-2 px-4 w-full">Login</button>
+    </div>
+    
 </form>
+</div>
+</div>
+</body>
+</html>
