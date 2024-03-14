@@ -139,38 +139,46 @@
         
             <div class="w-full h-screen overflow-x-hidden border-t flex flex-col">
                 <main class="w-full flex-grow p-6">
-                    {% if obra %}
-                    <div id="qr-reader" class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4"></div>
-                    <script>
-                        function onScanSuccess(decodedText, decodedResult) {
-                    // Assuming the QR code format is "Name LastName (IDNumber)"
-                    let parts = decodedText.split(" "); // Split the decoded text by spaces
-                    let idNumber = parts[parts.length - 1]; // Assume the ID number is the last part
-                
-                    // Use a regex to remove any non-digit characters from idNumber
-                    idNumber = idNumber.replace(/\D/g, '');
-                
-                    fetch(`http://localhost:8000/api/registrar_asistencia/`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': getCookie('csrftoken')
-                        },
-                        body: JSON.stringify({ num_identificacion: idNumber })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        // Handle the response from the server
-                        console.log(data);
-                    })
-                    .catch(error => console.error('Error:', error));
-                }
-                        var html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: 250 });
-                        html5QrcodeScanner.render(onScanSuccess);
-                    </script>
-                    {% else %}
-                    <p>Este usuario no tiene una obra asignada o no tienes permiso para ver esta página.</p>
-                    {% endif %}
+                    <div class="flex justify-center">
+                        <div class="w-full max-w-lg"> <!-- Establece un ancho máximo para pantallas más grandes -->
+                            <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+                                {% if obra %}
+                                <div id="qr-reader" class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4"></div>
+                                <script>
+                                    function onScanSuccess(decodedText, decodedResult) {
+                                // Assuming the QR code format is "Name LastName (IDNumber)"
+                                let parts = decodedText.split(" "); // Split the decoded text by spaces
+                                let idNumber = parts[parts.length - 1]; // Assume the ID number is the last part
+                            
+                                // Use a regex to remove any non-digit characters from idNumber
+                                idNumber = idNumber.replace(/\D/g, '');
+                            
+                                fetch(`http://localhost:8000/api/registrar_asistencia/`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRFToken': getCookie('csrftoken')
+                                    },
+                                    body: JSON.stringify({ num_identificacion: idNumber })
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    // Handle the response from the server
+                                    console.log(data);
+                                })
+                                .catch(error => console.error('Error:', error));
+                            }
+                                    var html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: 250 });
+                                    html5QrcodeScanner.render(onScanSuccess);
+                                </script>
+                                {% else %}
+                                <p>Este usuario no tiene una obra asignada o no tienes permiso para ver esta página.</p>
+                                {% endif %}
+                            
+                            </div>
+                        </div>
+                    </div>
+                    
                 </main>
         
     
