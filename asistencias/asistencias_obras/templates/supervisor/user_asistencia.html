@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <title>Asistencia</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
-    <script src="{% static 'js/html5-qrcode.min.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.3.1/dist/jsQR.js"></script>
     <!-- Ensure CSRF Token is available for AJAX calls -->
     <script type="text/javascript">
         function getCookie(name) {
@@ -143,34 +143,116 @@
                         <div class="w-full max-w-lg"> <!-- Establece un ancho máximo para pantallas más grandes -->
                             <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
                                 {% if obra %}
-                                <div id="qr-reader" class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4"></div>
+                                <p id="user-message"></p>
+                                <div id="qr-reader" class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                                    <video id="qr-video" style="display:block;"></video>
+                                </div>
+                                <canvas id="qr-canvas" style="display:none;"></canvas>
+                                <button id="capture-photo-btn" style="display:none;">Capturar Foto</button>
+
                                 <script>
-                                    function onScanSuccess(decodedText, decodedResult) {
-                                // Assuming the QR code format is "Name LastName (IDNumber)"
-                                let parts = decodedText.split(" "); // Split the decoded text by spaces
-                                let idNumber = parts[parts.length - 1]; // Assume the ID number is the last part
-                            
-                                // Use a regex to remove any non-digit characters from idNumber
-                                idNumber = idNumber.replace(/\D/g, '');
-                            
-                                fetch(`http://localhost:8000/api/registrar_asistencia/`, {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'X-CSRFToken': getCookie('csrftoken')
-                                    },
-                                    body: JSON.stringify({ num_identificacion: idNumber })
-                                })
-                                .then(response => response.json())
-                                .then(data => {
-                                    // Handle the response from the server
-                                    console.log(data);
-                                })
-                                .catch(error => console.error('Error:', error));
-                            }
-                                    var html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: 250 });
-                                    html5QrcodeScanner.render(onScanSuccess);
-                                </script>
+                                    document.addEventListener('DOMContentLoaded', function() {
+    const video = document.getElementById('qr-video');
+    const canvasElement = document.getElementById('qr-canvas');
+    const canvas = canvasElement.getContext('2d', { willReadFrequently: true });
+    const userMessageElement = document.getElementById('user-message');
+    const capturePhotoBtn = document.getElementById('capture-photo-btn');
+    let stream = null;
+    
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=') ){
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function startCamera() {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(function(mediaStream) {
+            stream = mediaStream;
+            video.srcObject = stream;
+            video.setAttribute("playsinline", true);
+            video.play();
+            requestAnimationFrame(tick); // Iniciar la detección de QR al arrancar la cámara
+        });
+    }
+
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            video.srcObject = null;
+        }
+    }
+
+    function tick() {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            canvasElement.height = video.videoHeight;
+            canvasElement.width = video.videoWidth;
+            canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+            var imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+            var code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert", });
+
+            if (code) {
+                console.log("QR Code found: ", code.data);
+                stopCamera(); // Detener la cámara para que el usuario pueda prepararse para la foto
+                
+                let parts = code.data.split(" ");
+                let idNumber = parts[parts.length - 1].replace(/\D/g, '');
+                userMessageElement.textContent = `Usuario ${idNumber} encontrado. Preparándose para capturar foto.`;
+                capturePhotoBtn.style.display = 'block';
+
+                capturePhotoBtn.onclick = function() {
+                    startCamera(); // Reiniciar la cámara inmediatamente para preparar la captura de foto
+                    setTimeout(function() {
+                        capturePhoto(idNumber);
+                    }, 3000); // Esperar 3 segundos antes de tomar la foto
+                };
+            } else {
+                requestAnimationFrame(tick);
+            }
+        } else {
+            requestAnimationFrame(tick);
+        }
+    }
+
+    function capturePhoto(idNumber) {
+        canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+        canvasElement.toBlob(function(blob) {
+            const formData = new FormData();
+            formData.append('foto', blob, 'foto.jpg');
+            formData.append('num_identificacion', idNumber);
+
+            fetch(`http://localhost:8000/api/registrar_asistencia/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                userMessageElement.textContent = `Foto del usuario ${idNumber} capturada y enviada.`;
+                stopCamera(); // Detener la cámara después de tomar la foto
+                capturePhotoBtn.style.display = 'none'; // Ocultar el botón de captura
+                startCamera(); // Reiniciar la cámara y el proceso de escaneo de QR después de enviar la foto
+            })
+            .catch(error => console.error('Error:', error));
+        }, 'image/jpeg');
+    }
+
+    startCamera(); // Iniciar la cámara al cargar la página
+});
+
+
+                                    </script>
                                 {% else %}
                                 <p>Este usuario no tiene una obra asignada o no tienes permiso para ver esta página.</p>
                                 {% endif %}
