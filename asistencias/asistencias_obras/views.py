@@ -37,6 +37,7 @@ def admin_dashboard(request):
         return HttpResponseForbidden("No tienes permiso para ver esta página.")
     return render(request, 'admin/admin_dashboard.html')
 
+@login_required
 def register(request):
     if request.user.userprofile.role != ADMIN_ROLE:
         return HttpResponseForbidden("No tienes permiso para ver esta página.")
@@ -73,6 +74,7 @@ def register(request):
     
     return render(request, 'admin/registro.html', {'form': form})
 
+@login_required
 def crear_obra(request):
     """
     Vista para crear una nueva obra. Maneja solicitudes GET para mostrar el formulario y POST para procesar el formulario.
@@ -91,6 +93,7 @@ def crear_obra(request):
     # Renderiza el template con el formulario, sea nuevo o con errores
     return render(request, 'admin/registro_obra.html', {'form': form})
 
+@login_required
 def lista_obras(request):
     """
     Vista para listar todas las obras registradas en la base de datos.
@@ -100,6 +103,7 @@ def lista_obras(request):
     obras = Obra.objects.all()  # Recupera todas las obras
     return render(request, 'admin/lista_obras.html', {'obras': obras})
 
+@login_required
 def cambiar_estado_obra(request, obra_id):
     if request.user.userprofile.role != ADMIN_ROLE:
         return HttpResponseForbidden("No tienes permiso para ver esta página.")
@@ -108,12 +112,14 @@ def cambiar_estado_obra(request, obra_id):
     obra.save()
     return HttpResponseRedirect(reverse('lista_obras'))
 
+@login_required
 def eliminar_obra(request, obra_id):
     if request.user.userprofile.role != ADMIN_ROLE:
         return HttpResponseForbidden("No tienes permiso para ver esta página.")
     Obra.objects.get(id=obra_id).delete()
     return HttpResponseRedirect(reverse('lista_obras'))
 
+@login_required
 def editar_obra(request, obra_id):
     if request.user.userprofile.role != ADMIN_ROLE:
         return HttpResponseForbidden("No tienes permiso para ver esta página.")
@@ -127,6 +133,7 @@ def editar_obra(request, obra_id):
         form = ObraForm(instance=obra)
     return render(request, 'admin/editar_obra.html', {'form': form, 'obra': obra})
 
+@login_required
 def asignar_obra_a_usuario(request, user_profile_id):
     if request.user.userprofile.role != ADMIN_ROLE:
         return HttpResponseForbidden("No tienes permiso para ver esta página.")
@@ -146,6 +153,7 @@ def asignar_obra_a_usuario(request, user_profile_id):
 
     return render(request, 'admin/asignar_obra.html', {'form': form, 'user_profile': user_profile})
 
+@login_required
 def lista_user_profiles(request):
     if request.user.userprofile.role != ADMIN_ROLE:
         return HttpResponseForbidden("No tienes permiso para ver esta página.")
@@ -222,6 +230,7 @@ def crear_empleado(request):
     
 @login_required
 def editar_empleado(request, empleado_id):
+
     empleado = get_object_or_404(Empleado, id=empleado_id)
     
     if request.method == 'POST':
