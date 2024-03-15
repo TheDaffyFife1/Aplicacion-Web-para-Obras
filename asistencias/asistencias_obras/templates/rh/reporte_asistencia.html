@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Asistencia</title>
+</head>
+<body>
+    <h1>Reporte de Asistencia</h1>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Foto</th>
+                <th>Lunes</th>
+                <th>Martes</th>
+                <th>Miércoles</th>
+                <th>Jueves</th>
+                <th>Viernes</th>
+                <th>Sueldo Total</th>
+                <th>Sueldo Diario</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for asistencia in asistencias %}
+            <tr>
+                <td>{{ asistencia.empleado.nombre }}</td>
+                <td><img src="{{ asistencia.foto.url }}" alt="Foto de Asistencia" style="max-width: 100px;"></td>
+                <!-- Aquí asignas el nombre del día basado en la fecha -->
+                <td>{{ asistencia.fecha|date:"l" }}</td>
+                <!-- Marca de entrada -->
+                <td>{% if asistencia.entrada %}✔{% else %}✘{% endif %}</td>
+                <!-- Marca de salida -->
+                <td>{% if asistencia.salida %}✔{% else %}✘{% endif %}</td>
+                <td>{{ asistencia.empleado.sueldo }}</td>
+                <!-- Suponiendo que ya calculaste el sueldo diario en tu vista, como se mencionó antes -->
+                <td>{{ asistencia.sueldo_diario }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        
+    </table>
+</body>
+</html>

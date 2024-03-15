@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import Group
 from .roles import ADMIN_ROLE, RH_ROLE, USER_ROLE
-from .models import UserProfile,Obra,Empleado,Puesto
+from .models import UserProfile,Obra,Empleado,Puesto,Asistencia
 from django.contrib.auth.decorators import login_required
 from .RegistrationForm import RegistrationForm
 from django.contrib.auth import login
@@ -253,6 +253,24 @@ def editar_empleado(request, empleado_id):
     
     return render(request, 'rh/editar_empleado.html', {'form': form, 'empleado': empleado})
 
+def reporte_asistencia(request):
+    # Obtener todos los registros de asistencia
+    asistencias = Asistencia.objects.all()
+    
+    # Número fijo de días trabajados a la semana, ajusta esto según tu necesidad
+    dias_trabajados_por_semana = 6
+    
+    # Agregar el sueldo diario a cada registro de asistencia
+    for asistencia in asistencias:
+        # Suponiendo que 'sueldo' es un campo en el modelo 'Empleado'
+        # y que todos los empleados trabajan la misma cantidad de días.
+        asistencia.sueldo_diario = asistencia.empleado.sueldo / dias_trabajados_por_semana
+
+    # Pasar los registros de asistencia al contexto, incluyendo el sueldo diario
+    context = {'asistencias': asistencias}
+    
+    # Renderizar la plantilla HTML con los datos proporcionados
+    return render(request, 'rh/reporte_asistencia.html', context)
 
 #Funciones para Supervisor
 @login_required
