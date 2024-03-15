@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from .RegistrationForm import RegistrationForm
 from django.contrib.auth import login
 from django.db import IntegrityError
-from django.http import HttpResponseForbidden, HttpResponseRedirect
+from django.http import HttpResponseForbidden, HttpResponseRedirect,JsonResponse
 from .RegistrationObra import ObraForm
 from django.urls import reverse
 from .FormAsignarObra import AsignarObraForm
@@ -14,6 +14,7 @@ from .FormEmpleado import EmpleadoForm
 from django.core.serializers import serialize
 import json
 from django import forms
+from django.views.decorators.http import require_POST
 
 @login_required
 def accesos(request):
@@ -113,12 +114,21 @@ def cambiar_estado_obra(request, obra_id):
     return HttpResponseRedirect(reverse('lista_obras'))
 
 @login_required
+@require_POST  # Asegura que esta vista solo acepte solicitudes POST
 def eliminar_obra(request, obra_id):
     if request.user.userprofile.role != ADMIN_ROLE:
-        return HttpResponseForbidden("No tienes permiso para ver esta página.")
-    Obra.objects.get(id=obra_id).delete()
-    return HttpResponseRedirect(reverse('lista_obras'))
+        return HttpResponseForbidden("No tienes permiso para realizar esta acción.")
 
+    obra = get_object_or_404(Obra, id=obra_id)
+    obra.delete()
+    
+    # Reemplaza request.is_ajax() con la comprobación del encabezado HTTP_X_REQUESTED_WITH
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'status': 'success', 'message': 'Obra eliminada correctamente'})
+    else:
+        return HttpResponseRedirect(reverse('lista_obras'))
+
+    
 @login_required
 def editar_obra(request, obra_id):
     if request.user.userprofile.role != ADMIN_ROLE:
