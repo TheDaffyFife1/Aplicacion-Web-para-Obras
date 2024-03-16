@@ -1,0 +1,293 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Asistencia</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <!-- Ensure CSRF Token is available for AJAX calls -->
+    <script type="text/javascript">
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+<style>
+    @import url('https://fonts.googleapis.com/css?family=Karla:400,700&display=swap');
+    .font-family-karla { font-family: karla; }
+    .bg-sidebar { background: #3d68ff; }
+    .cta-btn { color: #3d68ff; }
+    .upgrade-btn { background: #1947ee; }
+    .upgrade-btn:hover { background: #0038fd; }
+    .active-nav-link { background: #1947ee; }
+    .nav-item:hover { background: #1947ee; }
+    .account-link:hover { background: #3d68ff; }
+    .boton-accion {
+    display: inline-block;
+    padding: 8px 15px;
+    font-size: 14px;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    outline: none;
+    color: #fff;
+    background-color: #4CAF50;
+    border: none;
+    border-radius: 5px;
+    box-shadow: 0 9px #999;
+    margin: 2px;
+}
+
+.boton-accion:hover {background-color: #3e8e41}
+
+.boton-accion:active {
+    background-color: #3e8e41;
+    box-shadow: 0 5px #666;
+    transform: translateY(4px);
+}
+
+.boton-editar {
+    background-color: #008CBA;
+}
+
+.boton-eliminar {
+    background-color: #f44336;
+}
+
+.boton-activar, .boton-desactivar {
+    background-color: #555555;
+}
+</style>
+
+</head>
+<body class="bg-gray-100 font-family-karla flex">
+    <body class="bg-gray-100 font-family-karla flex">
+
+        <aside class="relative bg-sidebar h-screen w-64 hidden sm:block shadow-xl">
+            <div class="p-6">
+                <a href="{% url 'user_asistencia' %}" class="text-white text-3xl font-semibold uppercase hover:text-gray-300">Supervisor</a>
+    
+            </div>
+            <nav class="text-white text-base font-semibold pt-3">
+                <a href="{% url 'user_asistencia' %}" class="flex items-center text-white py-4 pl-6 nav-item {% if path_name == 'user_asistencia' %}active-nav-link{% endif %}">
+                    <i class="fas fa-tachometer-alt mr-3"></i>
+                    Toma de Asistencia
+                </a>
+                <!-- Enlace de cierre de sesión -->
+                <a href="javascript:void(0);" id="logoutLink" data-url="{% url 'logout' %}" class="flex items-center text-white opacity-75 hover:opacity-100 py-4 pl-6 nav-item">
+                    <i class="fas fa-sign-out-alt mr-3"></i>
+                    Cerrar Sesión
+                </a>
+            </nav>
+        </aside>
+    
+        <div class="relative w-full flex flex-col h-screen overflow-y-hidden">
+            <!-- Desktop Header -->
+            <header class="w-full items-center bg-white py-2 px-6 hidden sm:flex">
+                <div class="w-1/2"></div>
+                <div x-data="{ isOpen: false }" class="relative w-1/2 flex justify-end">
+                    <button @click="isOpen = !isOpen" class="realtive z-10 w-12 h-12 rounded-full overflow-hidden border-4 border-gray-400 hover:border-gray-300 focus:border-gray-300 focus:outline-none">
+                        <img src="{% static 'img/prueba.png' %}" alt="Descripción de la imagen">
+                    </button>
+                    
+                    <button x-show="isOpen" @click="isOpen = false" class="h-full w-full fixed inset-0 cursor-default"></button>
+                    <div x-show="isOpen" class="absolute w-32 bg-white rounded-lg shadow-lg py-2 mt-16">
+                        <a href="#" class="block px-4 py-2 account-link hover:text-white">Cuenta</a>
+                        <a href="javascript:void(0);" id="logoutLink" data-url="{% url 'logout' %}" class="block px-4 py-2 account-link hover:text-white">Cerrar Sesion</a>
+                    </div>
+                </div>
+            </header>
+    
+            <!-- Mobile Header & Nav -->
+            <header x-data="{ isOpen: false }" class="w-full bg-sidebar py-5 px-6 sm:hidden">
+                <div class="flex items-center justify-between">
+                    <a href="index.html" class="text-white text-3xl font-semibold uppercase hover:text-gray-300">Supervisor</a>
+                    <button @click="isOpen = !isOpen" class="text-white text-3xl focus:outline-none">
+                        <i x-show="!isOpen" class="fas fa-bars"></i>
+                        <i x-show="isOpen" class="fas fa-times"></i>
+                    </button>
+                </div>
+    
+                <!-- Dropdown Nav -->
+                <nav :class="isOpen ? 'flex': 'hidden'" class="flex flex-col pt-4">
+                    <a href="{% url 'user_asistencia' %}" class="flex items-center text-white opacity-75 hover:opacity-100 py-2 pl-4 nav-item">
+                        <i class="fas fa-tachometer-alt mr-3"></i>
+                        Toma de Asistencia
+                    </a>
+                    <a href="javascript:void(0);" id="logoutLink" data-url="{% url 'logout' %}" class="flex items-center text-white opacity-75 hover:opacity-100 py-2 pl-4 nav-item">
+                        <i class="fas fa-sign-out-alt mr-3"></i>
+                        Cerrar Sesion
+                    </a>
+                </nav>
+                <!-- <button class="w-full bg-white cta-btn font-semibold py-2 mt-5 rounded-br-lg rounded-bl-lg rounded-tr-lg shadow-lg hover:shadow-xl hover:bg-gray-300 flex items-center justify-center">
+                    <i class="fas fa-plus mr-3"></i> Nueava Obra
+                </button> -->
+            </header>
+        
+            <div class="w-full h-screen overflow-x-hidden border-t flex flex-col">
+                <main class="w-full flex-grow p-6">
+                    <div class="flex justify-center">
+                        <div class="w-full max-w-lg"> <!-- Establece un ancho máximo para pantallas más grandes -->
+                            <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+                                {% if obra %}
+                                <p id="user-message"></p>
+                                <div id="qr-reader" class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                                    <video id="qr-video" style="display:block;"></video>
+                                </div>
+                                <canvas id="qr-canvas" style="display:none;"></canvas>
+                                <button id="capture-photo-btn" style="display:none;">Capturar Foto</button>
+
+                                <script>
+                                    document.addEventListener('DOMContentLoaded', function() {
+    const video = document.getElementById('qr-video');
+    const canvasElement = document.getElementById('qr-canvas');
+    const canvas = canvasElement.getContext('2d', { willReadFrequently: true });
+    const userMessageElement = document.getElementById('user-message');
+    const capturePhotoBtn = document.getElementById('capture-photo-btn');
+    let stream = null;
+    
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=') ){
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function startCamera() {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(function(mediaStream) {
+            stream = mediaStream;
+            video.srcObject = stream;
+            video.setAttribute("playsinline", true);
+            video.play();
+            requestAnimationFrame(tick); // Iniciar la detección de QR al arrancar la cámara
+        });
+    }
+
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            video.srcObject = null;
+        }
+    }
+
+    function tick() {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            canvasElement.height = video.videoHeight;
+            canvasElement.width = video.videoWidth;
+            canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+            var imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+            var code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert", });
+
+            if (code) {
+                console.log("QR Code found: ", code.data);
+                stopCamera(); // Detener la cámara para que el usuario pueda prepararse para la foto
+                
+                let parts = code.data.split(" ");
+                let idNumber = parts[parts.length - 1].replace(/\D/g, '');
+                userMessageElement.textContent = `Usuario ${idNumber} encontrado. Preparándose para capturar foto.`;
+                capturePhotoBtn.style.display = 'block';
+
+                capturePhotoBtn.onclick = function() {
+                    startCamera(); // Reiniciar la cámara inmediatamente para preparar la captura de foto
+                    setTimeout(function() {
+                        capturePhoto(idNumber);
+                    }, 3000); // Esperar 3 segundos antes de tomar la foto
+                };
+            } else {
+                requestAnimationFrame(tick);
+            }
+        } else {
+            requestAnimationFrame(tick);
+        }
+    }
+
+    function capturePhoto(idNumber) {
+        canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+        canvasElement.toBlob(function(blob) {
+            const formData = new FormData();
+            formData.append('foto', blob, 'foto.jpg');
+            formData.append('num_identificacion', idNumber);
+
+            fetch(`http://localhost:8000/api/registrar_asistencia/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                userMessageElement.textContent = `Foto del usuario ${idNumber} capturada y enviada.`;
+                stopCamera(); // Detener la cámara después de tomar la foto
+                capturePhotoBtn.style.display = 'none'; // Ocultar el botón de captura
+                startCamera(); // Reiniciar la cámara y el proceso de escaneo de QR después de enviar la foto
+            })
+            .catch(error => console.error('Error:', error));
+        }, 'image/jpeg');
+    }
+
+    startCamera(); // Iniciar la cámara al cargar la página
+});
+
+
+                                    </script>
+                                {% else %}
+                                <p>Este usuario no tiene una obra asignada o no tienes permiso para ver esta página.</p>
+                                {% endif %}
+                            
+                            </div>
+                        </div>
+                    </div>
+                    
+                </main>
+        
+    
+            </div>
+            
+        </div>
+    
+        <!-- AlpineJS -->
+        <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
+        <!-- Font Awesome -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js" integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin="anonymous"></script>
+        <script>
+            document.getElementById('logoutLink').addEventListener('click', function() {
+                var form = document.createElement('form');
+                form.method = 'POST';
+                form.action = this.getAttribute('data-url'); // Obtener la URL desde el atributo de datos
+    
+                // CSRF token
+                var csrfToken = document.createElement('input');
+                csrfToken.type = 'hidden';
+                csrfToken.name = 'csrfmiddlewaretoken';
+                csrfToken.value = '{{ csrf_token }}'; // Esto necesitará ser ajustado si estás en un archivo .js
+                form.appendChild(csrfToken);
+    
+                document.body.appendChild(form);
+                form.submit();
+            });
+    
+        </script>
+    </body>
+    </html>

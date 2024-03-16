@@ -6,10 +6,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administrador</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <meta name="csrf-token" content="{{ csrf_token }}">
 
     <!-- Tailwind -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
-    
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+
     <style>
         @import url('https://fonts.googleapis.com/css?family=Karla:400,700&display=swap');
         .font-family-karla { font-family: karla; }
@@ -59,13 +62,13 @@
 
 </head>
 <body class="bg-gray-100 font-family-karla flex">
-
+     
     <aside class="relative bg-sidebar h-screen w-64 hidden sm:block shadow-xl">
         <div class="p-6">
-            <a href="{% url 'crear_obra' %}" class="text-white text-3xl font-semibold uppercase hover:text-gray-300">Admin</a>
-            <button class="w-full bg-white cta-btn font-semibold py-2 mt-5 rounded-br-lg rounded-bl-lg rounded-tr-lg shadow-lg hover:shadow-xl hover:bg-gray-300 flex items-center justify-center">
+            <a  class="text-white text-3xl font-semibold uppercase hover:text-gray-300">Admin</a>
+            <a href="{% url 'crear_obra' %}" class="w-full bg-white cta-btn font-semibold py-2 mt-5 rounded-br-lg rounded-bl-lg rounded-tr-lg shadow-lg hover:shadow-xl hover:bg-gray-300 flex items-center justify-center">
                 <i class="fas fa-plus mr-3"></i> Nueva Obra
-            </button>
+            </a>
         </div>
         <nav class="text-white text-base font-semibold pt-3">
             <a href="{% url 'admin_dashboard' %}" class="flex items-center text-white py-4 pl-6 nav-item {% if path_name == 'admin_dashboard' %}active-nav-link{% endif %}">
@@ -85,7 +88,7 @@
                 Crear Supervisores
             </a>
             <!-- Enlace de cierre de sesión -->
-            <a href="{% url 'logout' %}" class="flex items-center text-white opacity-75 hover:opacity-100 py-4 pl-6 nav-item">
+            <a href="javascript:void(0);" id="logoutLink" data-url="{% url 'logout' %}" class="flex items-center text-white opacity-75 hover:opacity-100 py-4 pl-6 nav-item">
                 <i class="fas fa-sign-out-alt mr-3"></i>
                 Cerrar Sesión
             </a>
@@ -104,7 +107,7 @@
                 <button x-show="isOpen" @click="isOpen = false" class="h-full w-full fixed inset-0 cursor-default"></button>
                 <div x-show="isOpen" class="absolute w-32 bg-white rounded-lg shadow-lg py-2 mt-16">
                     <a href="#" class="block px-4 py-2 account-link hover:text-white">Cuenta</a>
-                    <a href="{% url 'logout' %}" class="block px-4 py-2 account-link hover:text-white">Cerrar Sesion</a>
+                    <a href="javascript:void(0);" id="logoutLink" data-url="{% url 'logout' %}" class="block px-4 py-2 account-link hover:text-white">Cerrar Sesion</a>
                 </div>
             </div>
         </header>
@@ -133,7 +136,7 @@
                     <i class="fas fa-table mr-3"></i>
                     Asignaciones
                 </a>
-                <a href="{% url 'register' %}" class="flex items-center active-nav-link text-white py-2 pl-4 nav-item">
+                <a href="{% url 'register' %}" class="flex items-center text-white py-2 pl-4 nav-item">
                     <i class="fas fa-align-left mr-3"></i>
                     Crear Supervisores
                 </a>
@@ -142,10 +145,11 @@
                     <i class="fas fa-user mr-3"></i>
                     Cuenta
                 </a>
-                <a href="{% url 'logout' %}" class="flex items-center text-white opacity-75 hover:opacity-100 py-2 pl-4 nav-item">
+                <a href="javascript:void(0);" id="logoutLink" data-url="{% url 'logout' %}" class="flex items-center text-white opacity-75 hover:opacity-100 py-2 pl-4 nav-item">
                     <i class="fas fa-sign-out-alt mr-3"></i>
-                    Cerrar Sesion
+                    Cerrar Sesión
                 </a>
+                
             </nav>
             <!-- <button class="w-full bg-white cta-btn font-semibold py-2 mt-5 rounded-br-lg rounded-bl-lg rounded-tr-lg shadow-lg hover:shadow-xl hover:bg-gray-300 flex items-center justify-center">
                 <i class="fas fa-plus mr-3"></i> Nueava Obra
@@ -153,6 +157,10 @@
         </header>
     
         <div class="w-full h-screen overflow-x-hidden border-t flex flex-col">
+            <div id="loading">
+                <!-- Aquí puedes añadir tu animación o imagen de carga -->
+                Cargando...
+            </div> 
             <main class="w-full flex-grow p-6">
                 {% block content %}
                 {% endblock %}
@@ -167,5 +175,29 @@
     <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
     <!-- Font Awesome -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js" integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin="anonymous"></script>
+
+    <script>
+        document.getElementById('logoutLink').addEventListener('click', function() {
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = this.getAttribute('data-url'); // Obtener la URL desde el atributo de datos
+
+            // CSRF token
+            var csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = 'csrfmiddlewaretoken';
+            csrfToken.value = '{{ csrf_token }}'; // Esto necesitará ser ajustado si estás en un archivo .js
+            form.appendChild(csrfToken);
+
+            document.body.appendChild(form);
+            form.submit();
+        });
+        window.addEventListener('load', function() {
+    console.log('La página ha terminado de cargar');
+    document.getElementById('loading').style.display = 'none';
+});
+
+    </script>
+
 </body>
 </html>

@@ -18,6 +18,8 @@ def registrar_asistencia(request):
     except Empleado.DoesNotExist:
         return Response({'error': 'Empleado no encontrado'}, status=status.HTTP_404_NOT_FOUND)
 
+    foto = request.FILES.get('foto', None)  # Obtener la foto del request
+
     fecha_hoy = timezone.now().date()
     asistencia, created = Asistencia.objects.get_or_create(
         empleado=empleado, 
@@ -25,14 +27,16 @@ def registrar_asistencia(request):
         defaults={'entrada': timezone.now()}
     )
 
-    if not created and asistencia.salida is None:
-        # Si ya existe una asistencia para hoy y no se ha registrado la salida
-        hora_actual = timezone.now()
-        asistencia.salida = hora_actual
-        asistencia.save()
-        return Response({'mensaje': 'Salida registrada correctamente.'})
+    if created:
+        asistencia.foto = foto  # Guardar la foto si es un registro nuevo
+    else:
+        if asistencia.salida is None:
+            asistencia.salida = timezone.now()
+            asistencia.foto = foto  # Opcional: actualizar la foto en la salida
+            asistencia.save()
+            return Response({'mensaje': 'Salida registrada correctamente.'})
+        else:
+            return Response({'error': 'Entrada y salida ya registradas para hoy.'}, status=status.HTTP_409_CONFLICT)
 
-    elif not created:
-        return Response({'error': 'Entrada y salida ya registradas para hoy.'}, status=status.HTTP_409_CONFLICT)
-
-    return Response({'mensaje': 'Entrada registrada correctamente.'})
+    asistencia.save()  # No olvides guardar el objeto después de modificarlo
+    return Response({'mensaje': 'Registro actualizado correctamente.'})
