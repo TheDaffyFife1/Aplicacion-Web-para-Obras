@@ -1,45 +1,127 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reporte de Asistencia</title>
-</head>
-<body>
-    <h1>Reporte de Asistencia</h1>
-    <table border="1">
-        <thead>
-            <tr>
-                <th>Nombre</th>
-                <th>Foto</th>
-                <th>Lunes</th>
-                <th>Martes</th>
-                <th>Miércoles</th>
-                <th>Jueves</th>
-                <th>Viernes</th>
-                <th>Sueldo Total</th>
-                <th>Sueldo Diario</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for asistencia in asistencias %}
-            <tr>
-                <td>{{ asistencia.empleado.nombre }}</td>
-                <td><img src="{{ asistencia.foto.url }}" alt="Foto de Asistencia" style="max-width: 100px;"></td>
-                <!-- Aquí asignas el nombre del día basado en la fecha -->
-                <td>{{ asistencia.fecha|date:"l" }}</td>
-                <!-- Marca de entrada -->
-                <td>{% if asistencia.entrada %}✔{% else %}✘{% endif %}</td>
-                <!-- Marca de salida -->
-                <td>{% if asistencia.salida %}✔{% else %}✘{% endif %}</td>
-                <td>{{ asistencia.empleado.sueldo }}</td>
-                <!-- Suponiendo que ya calculaste el sueldo diario en tu vista, como se mencionó antes -->
-                <td>{{ asistencia.sueldo_diario }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-        
-    </table>
-</body>
-</html>
+{% extends "layouts/base_rh.html" %}
+{% block content %}
+
+
+<h1 class="text-3xl text-black pb-6">Asistencia</h1>
+
+<div class="w-full mt-6">
+    <p class="text-xl pb-3 flex items-center">
+        <i class="fas fa-list mr-3"></i> Reporte de Asistencia: Semana {{ semana_actual }} del mes
+    </p>
+
+<br>
+<br>
+    <div class="bg-white overflow-auto">
+        <table class="min-w-full bg-white">
+            <thead class="bg-gray-800 text-white">
+                <tr>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Nombre</th>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Foto</th>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Lunes</th>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Martes</th>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Miercoles</th>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Jueves</th>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Viernes</th>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Sabado</th>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Sueldo</th>
+                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Total a pagar</th>
+            </thead>
+            <tbody>
+                {% for empleado in empleados_context %}
+                <tr>
+                    <td class="text-left py-3 px-4">{{ empleado.nombre }} {{ empleado.apellido }}</td>
+                    <td class="text-left py-3 px-4">
+                        {% if empleado.fotografia %}
+                            <img src="{{ empleado.fotografia.url }}" alt="Fotografía" class="foto-empleado">
+                        {% else %}
+                            Sin Foto
+                        {% endif %}                
+                    </td>
+                    {% for dia in empleado.asistencias.values %}
+                        <td class="text-left py-3 px-4">
+                            {% if dia.entrada or dia.salida %}
+                                {% if dia.entrada %}✔️ Entrada: {{ dia.entrada|date:"H:i" }}{% endif %}
+                                {% if dia.salida %}✔️ Salida: {{ dia.salida|date:"H:i" }}{% endif %}
+                                {% if not dia.entrada or not dia.salida %}
+                                    <br>Medio Día
+                                {% endif %}
+                                <br>Sueldo Diario: {{ dia.sueldo_diario|floatformat:2 }}
+                                {% if dia.foto_dia %}
+                                    <br>
+                                    <img src="{{ dia.foto_dia }}" alt="Foto del día" style="max-width: 100px;" onclick="abrirModal('{{ dia.foto_dia }}')">
+                                {% endif %}
+                            {% else %}
+                                No asistió
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                    <td class="text-left py-3 px-4">{{ empleado.sueldo_total }}</td>
+                    <!-- Calcular el total pagado en la semana -->
+                    <td class="text-left py-3 px-4">{{ empleado.total_semanal|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
+
+</div>
+
+<!-- Modal para la foto del día -->
+<div id="modalFoto" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black bg-opacity-40" aria-labelledby="modal title" role="dialog" aria-modal="true">
+    <!-- Contenido del modal -->
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <!-- Este div contiene el fondo y el contenido del modal -->
+        <div class="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div class="px-4 pt-5 pb-4 bg-white sm:p-6 sm:pb-4">
+                <div class="sm:flex sm:items-start">
+                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                        <h3 class="text-lg font-medium leading-6 text-gray-900" id="modal-title">
+                            Foto del Día
+                        </h3>
+                        <div class="mt-2">
+                            <img id="imgModal" src="" alt="Foto del día" class="w-full rounded-md">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Botones del modal -->
+            <div class="px-4 py-3 bg-gray-50 sm:px-6 sm:flex sm:flex-row-reverse">
+                <span class="mt-3 flex w-full rounded-md shadow-sm sm:mt-0 sm:w-auto">
+                    <button type="button" class="inline-flex justify-center w-full px-4 py-2 text-base font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:border-red-700 focus:shadow-outline-red sm:text-sm sm:leading-5" onclick="modal.style.display = 'none'">
+                        Cerrar
+                    </button>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+    <script>
+        // Obtener el modal
+        var modal = document.getElementById("modalFoto");
+    
+        // Obtener el elemento <span> que cierra el modal
+        var span = document.getElementsByClassName("close")[0];
+    
+        // Cuando el usuario haga clic en <span> (x), cierra el modal
+        span.onclick = function() {
+            modal.style.display = "none";
+        }
+    
+        // Cuando el usuario haga clic en cualquier lugar fuera del modal, ciérralo
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+    
+        // Función para abrir el modal y mostrar la foto
+        function abrirModal(src) {
+            document.getElementById("imgModal").src = src;
+            modal.style.display = "block";
+        }
+    </script>
+{% endblock %}

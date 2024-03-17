@@ -15,6 +15,8 @@ from django.core.serializers import serialize
 import json
 from django import forms
 from django.views.decorators.http import require_POST
+from django.utils import timezone
+from datetime import timedelta
 
 @login_required
 def accesos(request):
@@ -253,24 +255,69 @@ def editar_empleado(request, empleado_id):
     
     return render(request, 'rh/editar_empleado.html', {'form': form, 'empleado': empleado})
 
+@login_required
 def reporte_asistencia(request):
-    # Obtener todos los registros de asistencia
-    asistencias = Asistencia.objects.all()
-    
-    # Número fijo de días trabajados a la semana, ajusta esto según tu necesidad
-    dias_trabajados_por_semana = 6
-    
-    # Agregar el sueldo diario a cada registro de asistencia
-    for asistencia in asistencias:
-        # Suponiendo que 'sueldo' es un campo en el modelo 'Empleado'
-        # y que todos los empleados trabajan la misma cantidad de días.
-        asistencia.sueldo_diario = asistencia.empleado.sueldo / dias_trabajados_por_semana
+    user_profile = request.user.userprofile
+    if user_profile.role == RH_ROLE:
+        obra_id = user_profile.obra_id
+        if obra_id:
+            obra = get_object_or_404(Obra, id=obra_id)
+            # Filtrar empleados que pertenecen a la obra específica
+            empleados = Empleado.objects.filter(obra=obra)
 
-    # Pasar los registros de asistencia al contexto, incluyendo el sueldo diario
-    context = {'asistencias': asistencias}
-    
-    # Renderizar la plantilla HTML con los datos proporcionados
-    return render(request, 'rh/reporte_asistencia.html', context)
+            hoy = timezone.localtime().date()
+            inicio_semana = hoy - timedelta(days=hoy.weekday())  # Lunes
+            fin_semana = inicio_semana + timedelta(days=5)  # Sábado
+            
+            # Asegurarse de que las asistencias pertenecen a los empleados de la obra específica
+            asistencias_semana_actual = Asistencia.objects.filter(
+                empleado__obra=obra,
+                fecha__range=(inicio_semana, fin_semana)
+            ).select_related('empleado').order_by('fecha')
+
+            # Inicializar y llenar el contexto de empleados con datos de asistencia
+            empleados_context = {empleado.id: {
+                'nombre': empleado.nombre + " " + empleado.apellido,
+                'foto_url': empleado.fotografia.url if empleado.fotografia else None,
+                'sueldo_total': empleado.sueldo,
+                'asistencias': {dia: {'entrada': None, 'salida': None, 'foto_dia': None, 'sueldo_diario': 0} for dia in range(6)}
+            } for empleado in empleados}
+
+            for asistencia in asistencias_semana_actual:
+                dia_semana = asistencia.fecha.weekday()
+                empleado_context = empleados_context.get(asistencia.empleado_id)
+                if empleado_context:  # Verifica si el empleado está en la obra antes de proceder
+                    empleado_context['asistencias'][dia_semana] = {
+                        'entrada': asistencia.entrada,
+                        'salida': asistencia.salida,
+                        'foto_dia': asistencia.foto.url if asistencia.foto else None
+                    }
+
+            # Calcular el sueldo diario y total semanal para cada empleado
+            for datos in empleados_context.values():
+                sueldo_diario_completo = datos['sueldo_total'] / 6
+                total_semanal = 0
+                for asistencia in datos['asistencias'].values():
+                    if asistencia['entrada'] and asistencia['salida']:
+                        asistencia['sueldo_diario'] = sueldo_diario_completo
+                    elif asistencia['entrada'] or asistencia['salida']:
+                        asistencia['sueldo_diario'] = sueldo_diario_completo / 2
+                    total_semanal += asistencia.get('sueldo_diario', 0)
+                datos['total_semanal'] = total_semanal
+
+            context = {
+                'empleados_context': empleados_context.values(),
+                'obra': obra,  # Opcional: pasar la obra al contexto si se necesita en la plantilla
+                'inicio_semana': inicio_semana,
+                'fin_semana': fin_semana
+            }
+
+            return render(request, 'rh/reporte_asistencia.html', context)
+
+        else:
+            return HttpResponseForbidden("Este usuario de RH no tiene una obra asignada.")
+    else:
+        return HttpResponseForbidden("No tienes permiso para ver esta página.")
 
 #Funciones para Supervisor
 @login_required
