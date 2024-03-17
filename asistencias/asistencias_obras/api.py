@@ -32,7 +32,6 @@ def registrar_asistencia(request):
     else:
         if asistencia.salida is None:
             asistencia.salida = timezone.now()
-            asistencia.foto = foto  # Opcional: actualizar la foto en la salida
             asistencia.save()
             return Response({'mensaje': 'Salida registrada correctamente.'})
         else:
