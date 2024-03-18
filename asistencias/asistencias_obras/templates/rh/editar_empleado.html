@@ -10,7 +10,7 @@
       <p class="text-x pb-6 flex items-center">
         <i class="fas fa-list mr-3"></i>Editar Empleado
       </p>
-      <form method="post" class="mb-0 space-y-6">
+      <form method="post" class="mb-0 space-y-6" enctype="multipart/form-data">
         {% csrf_token %}
         {% for field in form %}
         <div>

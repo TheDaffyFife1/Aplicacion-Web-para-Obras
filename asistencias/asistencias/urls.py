@@ -19,7 +19,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path
-from asistencias_obras.views import reporte_asistencia,editar_empleado,lista_obras,accesos, register, admin_dashboard, rh_dashboard, user_asistencia,crear_obra,cambiar_estado_obra, eliminar_obra, editar_obra,lista_user_profiles,asignar_obra_a_usuario,lista_empleados,crear_empleado
+from asistencias_obras.views import dashboard_data,reporte_asistencia,editar_empleado,lista_obras,accesos, register, admin_dashboard, rh_dashboard, user_asistencia,crear_obra,cambiar_estado_obra, eliminar_obra, editar_obra,lista_user_profiles,asignar_obra_a_usuario,lista_empleados,crear_empleado
 from django.contrib.auth import views as auth_views
 from asistencias_obras import views
 from asistencias_obras.api import registrar_asistencia
@@ -50,6 +50,7 @@ urlpatterns = [
     path('api/registrar_asistencia/', registrar_asistencia, name='registrar_asistencia'),
     path('reporte-asistencia/', reporte_asistencia, name='reporte_asistencia'),
     path('reporte-asistencia/<str:fecha_referencia>/', reporte_asistencia, name='reporte_asistencia_con_fecha'),
+    path('dashboard-data', dashboard_data, name='dashboard-data'),
 
     # ... other paths ...
 ]
