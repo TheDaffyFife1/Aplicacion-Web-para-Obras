@@ -19,8 +19,9 @@
     <h2>Administrador</h2>
     <div>
       <h3>Proyectos Activos:</h3>
-      <p>{{ active_projects }}</p>
-    </div>
+      {% for project in project_progress_data %}
+      <p>{{ project.nombre }}: {{ project.progress }}%</p>
+      {% endfor %}    </div>
     <div>
       <h3>Empleados en Proyectos Activos:</h3>
       <p>{{ active_employees }}</p>
@@ -32,37 +33,6 @@
     <option value="month">This Month</option>
     <!-- Add more options as needed -->
   </select>
-  <!-- Individual Section -->
-  <div class="dashboard-section">
-    <h2>Individuales</h2>
-    <!-- Placeholder for individual project completion percentage -->
-    <!-- Table of employees working on the projects -->
-    <table>
-      <thead>
-        <tr>
-          <th>Nombre</th>
-          <th>Apellido</th>
-          <th>Puesto</th>
-          <th>Obra</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for employee in employees_table_data %}
-        <tr>
-          <td>{{ employee.nombre }}</td>
-          <td>{{ employee.apellido }}</td>
-          <td>{{ employee.puesto__nombre }}</td>
-          <td>{{ employee.obra__nombre }}</td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="4">No hay empleados para mostrar.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
 
 {% endblock %}
 {% block extra_js %}

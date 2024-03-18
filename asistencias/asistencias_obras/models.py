@@ -31,6 +31,13 @@ class Obra(models.Model):
     fecha_inicio = models.DateField(null=True, blank=True)  # Opcional, para rango de fechas
     fecha_fin = models.DateField(null=True, blank=True)  # Opcional, para rango de fechas
 
+    @property
+    def progress(self):
+        total_milestones = self.milestones.count()
+        completed_milestones = self.milestones.filter(completed=True).count()
+        if total_milestones > 0:
+            return (completed_milestones / total_milestones) * 100
+        return 0
     
     def __str__(self):
         return self.nombre
@@ -129,3 +136,17 @@ class Asistencia(models.Model):
     class Meta:
         verbose_name = "asistencia"
         verbose_name_plural = "asistencias"
+
+class Milestone(models.Model):
+    obra = models.ForeignKey(Obra, related_name='milestones', on_delete=models.CASCADE)
+    title = models.CharField(max_length=100, verbose_name="Título")
+    description = models.TextField(verbose_name="Descripción", null=True, blank=True)
+    due_date = models.DateField(verbose_name="Fecha de vencimiento", null=True, blank=True)
+    completed = models.BooleanField(default=False, verbose_name="Completado")
+
+    def __str__(self):
+        return f"{self.title} - {'Completado' if self.completed else 'Pendiente'}"
+
+    class Meta:
+        verbose_name = "hito"
+        verbose_name_plural = "hitos"

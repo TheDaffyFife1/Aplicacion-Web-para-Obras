@@ -3,9 +3,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Asistencia</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
     <!-- Ensure CSRF Token is available for AJAX calls -->
     <script type="text/javascript">
         function getCookie(name) {
@@ -142,12 +143,13 @@
                         <div class="w-full max-w-lg"> <!-- Establece un ancho máximo para pantallas más grandes -->
                             <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
                                 {% if obra %}
-                                <p id="user-message"></p>
-                                <div id="qr-reader" class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-                                    <video id="qr-video" style="display:block;"></video>
+                                <p id="user-message" class="text-gray-700 text-base mb-4"></p>
+                                <div class="max-w-full overflow-hidden" id="video-container">
+                                    <video id="qr-video" class="w-full h-auto"></video>
                                 </div>
-                                <canvas id="qr-canvas" style="display:none;"></canvas>
-                                <button id="capture-photo-btn" style="display:none;">Capturar Foto</button>
+                                <canvas id="qr-canvas" style="display:none;" class="hidden"></canvas>
+                                <button id="capture-photo-btn"  class="hidden mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" style="display:none;">Capturar Foto</button>
+
 
                                 <script>
                                     document.addEventListener('DOMContentLoaded', function() {
@@ -155,9 +157,9 @@
     const canvasElement = document.getElementById('qr-canvas');
     const canvas = canvasElement.getContext('2d', { willReadFrequently: true });
     const userMessageElement = document.getElementById('user-message');
-    const capturePhotoBtn = document.getElementById('capture-photo-btn');
     let stream = null;
-    
+    let lastCaptureTime = null; // Almacena el momento de la última captura de foto
+
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -174,12 +176,17 @@
     }
 
     function startCamera() {
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(function(mediaStream) {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+        .then(function(mediaStream) {
             stream = mediaStream;
             video.srcObject = stream;
-            video.setAttribute("playsinline", true);
+            video.setAttribute("playsinline", true); // Asegura reproducción en modo en línea en iOS
             video.play();
-            requestAnimationFrame(tick); // Iniciar la detección de QR al arrancar la cámara
+            requestAnimationFrame(tick); // Inicia detección de QR una vez que la cámara se activa
+        })
+        .catch(function(error) {
+            console.error("Error starting camera:", error);
+            userMessageElement.textContent = "Error iniciando cámara: " + error.message;
         });
     }
 
@@ -196,29 +203,30 @@
             canvasElement.width = video.videoWidth;
             canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
             var imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
-            var code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert", });
+            var code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
 
             if (code) {
                 console.log("QR Code found: ", code.data);
-                stopCamera(); // Detener la cámara para que el usuario pueda prepararse para la foto
-                
-                let parts = code.data.split(" ");
-                let idNumber = parts[parts.length - 1].replace(/\D/g, '');
-                userMessageElement.textContent = `Usuario ${idNumber} encontrado. Preparándose para capturar foto.`;
-                capturePhotoBtn.style.display = 'block';
-
-                capturePhotoBtn.onclick = function() {
-                    startCamera(); // Reiniciar la cámara inmediatamente para preparar la captura de foto
-                    setTimeout(function() {
-                        capturePhoto(idNumber);
-                    }, 3000); // Esperar 3 segundos antes de tomar la foto
-                };
+                // Procesa el QR inmediatamente después de la detección
+                processQRCode(code.data);
             } else {
-                requestAnimationFrame(tick);
+                requestAnimationFrame(tick); // Si no se encuentra un QR, sigue intentando
             }
         } else {
-            requestAnimationFrame(tick);
+            requestAnimationFrame(tick); // Si el vídeo no está listo, vuelve a intentarlo
         }
+    }
+
+    function processQRCode(data) {
+        // Extracción del número de identificación del usuario desde el código QR
+        let parts = data.split(" ");
+        let idNumber = parts[parts.length - 1].replace(/\D/g, '');
+        userMessageElement.textContent = `Usuario ${idNumber} encontrado. Preparando para capturar foto.`;
+        
+        // Espera opcional antes de tomar la foto
+        setTimeout(function() {
+            capturePhoto(idNumber);
+        }, 3000); // Ajusta este retardo según necesites
     }
 
     function capturePhoto(idNumber) {
@@ -239,15 +247,37 @@
             .then(data => {
                 console.log(data);
                 userMessageElement.textContent = `Foto del usuario ${idNumber} capturada y enviada.`;
-                stopCamera(); // Detener la cámara después de tomar la foto
-                capturePhotoBtn.style.display = 'none'; // Ocultar el botón de captura
-                startCamera(); // Reiniciar la cámara y el proceso de escaneo de QR después de enviar la foto
+                lastCaptureTime = new Date(); // Guarda el momento de la captura de la foto
+                stopCamera(); // Detiene la cámara después de tomar la foto
+                setTimeout(startCamera, 10000); // Reinicia la cámara después de un tiempo determinado
             })
             .catch(error => console.error('Error:', error));
         }, 'image/jpeg');
     }
 
-    startCamera(); // Iniciar la cámara al cargar la página
+    // Función para verificar si puede hacerse la salida
+    function canExit() {
+        if (lastCaptureTime) {
+            const now = new Date();
+            const diff = now - lastCaptureTime; // Diferencia en milisegundos
+            const diffMinutes = diff / 60000; // Convierte a minutos
+            return diffMinutes >= 5; // Verifica si han pasado al menos 5 minutos
+        }
+        return false;
+    }
+
+    // Función que gestiona el intento de salida
+    function attemptExit() {
+        if (canExit()) {
+            // Aquí iría el código para gestionar la salida
+            console.log("Salida permitida.");
+        } else {
+            console.log("Debe esperar más tiempo antes de la salida.");
+        }
+    }
+
+    // Inicia la cámara al cargar la página
+    startCamera();
 });
 
 
