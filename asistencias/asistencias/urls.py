@@ -2,7 +2,7 @@
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/2.2/topics/http/urls/
-Examples:
+Examples:   
 Function views
     1. Add an import:  from my_app import views
     2. Add a URL to urlpatterns:  path('', views.home, name='home')
@@ -13,16 +13,15 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-
-
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path
-from asistencias_obras.views import dashboard_data,reporte_asistencia,editar_empleado,lista_obras,accesos, register, admin_dashboard, rh_dashboard, user_asistencia,crear_obra,cambiar_estado_obra, eliminar_obra, editar_obra,lista_user_profiles,asignar_obra_a_usuario,lista_empleados,crear_empleado
+from asistencias_obras.views import reporte_asistencia,editar_empleado,lista_obras,accesos, register, admin_dashboard, rh_dashboard, user_asistencia,crear_obra,cambiar_estado_obra, eliminar_obra, editar_obra,lista_user_profiles,asignar_obra_a_usuario,lista_empleados,crear_empleado
 from django.contrib.auth import views as auth_views
 from asistencias_obras import views
 from asistencias_obras.api import registrar_asistencia
+from asistencias_obras.views import attendance_by_project,project_progress,summary_data
 
 
 
@@ -50,8 +49,9 @@ urlpatterns = [
     path('api/registrar_asistencia/', registrar_asistencia, name='registrar_asistencia'),
     path('reporte-asistencia/', reporte_asistencia, name='reporte_asistencia'),
     path('reporte-asistencia/<str:fecha_referencia>/', reporte_asistencia, name='reporte_asistencia_con_fecha'),
-    path('dashboard-data', dashboard_data, name='dashboard-data'),
-
+    path('attendance-by-project/', views.attendance_by_project, name='attendance_by_project'),
+    path('project-progress/', views.project_progress, name='project_progress'),
+    path('summary-data/', views.summary_data, name='summary_data'),
     # ... other paths ...
 ]
 

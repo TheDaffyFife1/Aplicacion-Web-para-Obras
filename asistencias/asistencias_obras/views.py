@@ -20,6 +20,10 @@ from datetime import timedelta
 from django.db.models import Sum, Count, Q
 from django.db.models.functions import TruncWeek, TruncMonth
 from django.core.serializers import serialize
+from django.db.models.functions import Coalesce
+from django.db.models import ExpressionWrapper, F, FloatField
+from django.db.models.functions import Cast
+from django.db.models import Count, Case, When, Q
 
 @login_required
 def accesos(request):
@@ -41,73 +45,8 @@ def accesos(request):
 def admin_dashboard(request):
     if request.user.userprofile.role != ADMIN_ROLE:
         return HttpResponseForbidden("No tienes permiso para ver esta página.")
+    return render(request, 'admin/admin_dashboard.html')
 
-    today = timezone.now().date()
-    start_of_week = today - timezone.timedelta(days=today.weekday())
-    end_of_week = start_of_week + timezone.timedelta(days=6)
-
-    weekly_payment = Empleado.objects.filter(
-        Q(obra__activa=True) &
-        Q(obra__fecha_inicio__lte=end_of_week) &
-        Q(obra__fecha_fin__gte=start_of_week)
-    ).aggregate(total_payment=Sum('sueldo'))
-
-    attendance_by_project = Obra.objects.annotate(num_employees=Count('empleado')).values('nombre', 'num_employees')
-
-    full_time_employees = Empleado.objects.filter(puesto__nombre='Jornada completa').count()
-
-    active_projects_count = Obra.objects.filter(activa=True).count()
-
-    active_employees = Empleado.objects.filter(obra__activa=True).count()
-
-    project_progress_data = [
-        {
-            'nombre': project.nombre,
-            'progress': min(((today - project.fecha_inicio).days / (project.fecha_fin - project.fecha_inicio).days) * 100, 100)
-        } for project in Obra.objects.filter(activa=True)
-    ]
-    
-
-    context = {
-        'weekly_payment': weekly_payment['total_payment'],
-        'attendance_by_project': attendance_by_project,
-        'full_time_employees': full_time_employees,
-        'active_projects': active_projects_count,
-        'active_employees': active_employees,
-        'project_progress_data': project_progress_data,
-    }
-
-    return render(request, 'admin/admin_dashboard.html', context)
-
-@login_required
-def dashboard_data(request):
-    # Ensure only admins can access this data
-    if request.user.userprofile.role != ADMIN_ROLE:
-        return HttpResponseForbidden("No tienes permiso para ver esta página.")
-
-    # Retrieve the 'timeframe' from GET parameters
-    timeframe = request.GET.get('timeframe', 'week')
-
-    # Initialize the base queryset
-    queryset = Asistencia.objects.select_related('empleado').filter(empleado__obra__activa=True)
-
-    # Filter the queryset based on the selected timeframe
-    if timeframe == 'week':
-        # Filter data for the current week
-        queryset = queryset.annotate(week=TruncWeek('fecha')).values('week').annotate(total=Count('id'))
-    elif timeframe == 'month':
-        # Filter data for the current month
-        queryset = queryset.annotate(month=TruncMonth('fecha')).values('month').annotate(total=Count('id'))
-    else:
-        # For custom range, you would need additional GET parameters to specify the start and end dates
-        # For simplicity, this will just default to showing the current week's data
-        queryset = queryset.annotate(week=TruncWeek('fecha')).values('week').annotate(total=Count('id'))
-
-    # Convert the queryset to a list of dictionaries
-    data = list(queryset)
-
-    # Return a JsonResponse with the data
-    return JsonResponse(data, safe=False)
 
 @login_required
 def register(request):
@@ -242,6 +181,99 @@ def lista_user_profiles(request):
     user_profiles = UserProfile.objects.filter(role__in=[RH_ROLE, USER_ROLE])
     return render(request, 'admin/lista_user_profiles.html', {'user_profiles': user_profiles})
 
+
+@login_required
+def attendance_by_project(request):
+    # Asegúrate de reemplazar 'Obra' con el nombre de tu modelo de proyecto si es diferente
+    attendance_data = Obra.objects.annotate(
+        full_time=Count(
+            Case(
+                When(empleado__asistencia__entrada__isnull=False, 
+                     empleado__asistencia__salida__isnull=False, 
+                     empleado__asistencia__fecha=timezone.now().date(),
+                     then=1)
+            )
+        ),
+        part_time=Count(
+            Case(
+                When(empleado__asistencia__entrada__isnull=False, 
+                     empleado__asistencia__salida__isnull=True, 
+                     empleado__asistencia__fecha=timezone.now().date(),
+                     then=1)
+            )
+        ),
+        not_attended=Count(
+            Case(
+                When(empleado__asistencia__entrada__isnull=True, 
+                     empleado__asistencia__fecha=timezone.now().date(),
+                     then=1)
+            )
+        ),
+    ).values('nombre', 'full_time', 'part_time', 'not_attended')
+    
+    return JsonResponse(list(attendance_data), safe=False)
+
+@login_required
+def project_progress(request):
+    current_date = timezone.now().date()
+
+    progress_data = Obra.objects.filter(activa=True).annotate(
+        total_days=Cast((F('fecha_fin') - F('fecha_inicio')), output_field=FloatField()),
+        elapsed_days=Cast((current_date - F('fecha_inicio')), output_field=FloatField()),
+        progress=ExpressionWrapper(
+            Coalesce(100 * F('elapsed_days') / F('total_days'), 0),
+            output_field=FloatField()
+        )
+    ).values('nombre', 'progress')
+    
+    return JsonResponse(list(progress_data), safe=False)
+
+@login_required
+def summary_data(request):
+    today = timezone.now().date()
+    # Asistencia válida para hoy
+    valid_attendances = Asistencia.objects.filter(
+        fecha=today,
+        entrada__isnull=False,
+        salida__isnull=False
+    ).select_related('empleado')
+
+    # Calcular el sueldo total del día basado en la asistencia válida
+    total_payment_for_today = round(sum(
+        (empleado.empleado.sueldo / 6) for empleado in valid_attendances
+    ), 2)
+    jornadas_completas = sum(1 for empleado in valid_attendances if empleado.entrada and empleado.salida)
+    # Continuamos con el cálculo de asistencia semanal y mensual como se mostró anteriormente
+    this_week_start = today - timezone.timedelta(days=today.weekday())
+    this_week_end = this_week_start + timezone.timedelta(days=5)  # Ajuste para una semana de 6 días
+    this_month_start = today.replace(day=1)
+    next_month_start = (this_month_start + timezone.timedelta(days=31)).replace(day=1)
+    this_month_end = next_month_start - timezone.timedelta(days=1)
+
+    weekly_attendance_count = valid_attendances.filter(
+        fecha__gte=this_week_start,
+        fecha__lte=this_week_end
+    ).count()
+
+    monthly_attendance_count = valid_attendances.filter(
+        fecha__gte=this_month_start,
+        fecha__lte=this_month_end
+    ).count()
+
+    active_projects_count = Obra.objects.filter(activa=True).count()
+    active_employees_count = Empleado.objects.filter(obra__activa=True).distinct().count()
+
+    summary = {
+        'active_projects': active_projects_count,
+        'active_employees': active_employees_count,
+        'total_payment_for_today': total_payment_for_today,
+        'weekly_attendance_count': weekly_attendance_count,
+        'monthly_attendance_count': monthly_attendance_count,
+        'jornadas_completas': jornadas_completas,  # Agregado al resumen
+
+    }
+    
+    return JsonResponse(summary)
 
 #Funciones para RH
 @login_required
