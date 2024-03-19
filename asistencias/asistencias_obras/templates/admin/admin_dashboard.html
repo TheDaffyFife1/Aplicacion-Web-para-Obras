@@ -1,122 +1,275 @@
 {% extends "layouts/base_admin.html" %}
 
 {% block content %}
-<div class="dashboard">
-  <!-- General Section -->
-  <div class="dashboard-section">
-    <h2>General</h2>
-    <div>
-      <h3>Costos de pagos (Esta semana):</h3>
-      <p>${{ weekly_payment.sueldo__sum|default:"0.00" }}</p>
-    </div>
-    <div style="height: 400px; width: 600px;">      <h3>Asistencia por obra:</h3>
-      <canvas id="attendanceChart"></canvas>
-    </div>
-  </div>
+<h1 class="text-3xl text-black pb-6">Dashboard</h1>
+  <!-- cards -->
+  <div class="w-full px-6 py-6 mx-auto">
+    <!-- row 1 -->
+    <div class="flex flex-wrap -mx-3">
+      <!-- card1 -->
+      <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
+        <div class="relative flex flex-col min-w-0 break-words bg-white shadow-xl dark:bg-slate-850 dark:shadow-dark-xl rounded-2xl bg-clip-border">
+          <div class="flex-auto p-4">
+            <div class="flex flex-row -mx-3">
+              <div class="flex-none w-2/3 max-w-full px-3">
+                <div>
+                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Costos de pagos (Esta semana)</p>
+                  <h5 class="mb-2 font-bold dark:text-white">${{ weekly_payment.sueldo__sum|default:"0.00" }}</h5>
+                  <p class="mb-0 dark:text-white dark:opacity-60">
+                    <span class="text-sm font-bold leading-normal text-emerald-500"></span>
+                  </p>
+                </div>
+              </div>
+              <div class="px-3 text-right basis-1/3">
+                <div class="inline-block w-12 h-12 text-center rounded-circle bg-gradient-to-tl from-blue-500 to-violet-500">
+                  <i class="ni leading-none ni-money-coins text-lg relative top-3.5 text-white"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+       <!-- card2 -->
+       <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
+        <div class="relative flex flex-col min-w-0 break-words bg-white shadow-xl dark:bg-slate-850 dark:shadow-dark-xl rounded-2xl bg-clip-border">
+          <div class="flex-auto p-4">
+            <div class="flex flex-row -mx-3">
+              <div class="flex-none w-2/3 max-w-full px-3">
+                <div>
+                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Empleados de Jornada Completa</p>
+                  <h5 class="mb-2 font-bold dark:text-white">{{ full_time_employees }}</h5>
+                  <p class="mb-0 dark:text-white dark:opacity-60">
+                    <span class="text-sm font-bold leading-normal text-emerald-500"></span>
+                  </p>
+                </div>
+              </div>
+              <div class="px-3 text-right basis-1/3">
+                <div class="inline-block w-12 h-12 text-center rounded-circle bg-gradient-to-tl from-red-600 to-orange-600">
+                  <i class="ni leading-none ni-world text-lg relative top-3.5 text-white"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-  <!-- Administrator Views -->
-  <div class="dashboard-section">
-    <h2>Administrador</h2>
-    <div>
-      <h3>Proyectos Activos:</h3>
-      {% for project in project_progress_data %}
-      <p>{{ project.nombre }}: {{ project.progress }}%</p>
-      {% endfor %}    </div>
-    <div>
-      <h3>Empleados en Proyectos Activos:</h3>
-      <p>{{ active_employees }}</p>
-    </div>
-    <!-- Additional project progress visualization could go here -->
-  </div>
-  <select id="timePeriodSelector">
-    <option value="week">This Week</option>
-    <option value="month">This Month</option>
-    <!-- Add more options as needed -->
-  </select>
+      <!-- card3 -->
+      <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
+        <div class="relative flex flex-col min-w-0 break-words bg-white shadow-xl dark:bg-slate-850 dark:shadow-dark-xl rounded-2xl bg-clip-border">
+          <div class="flex-auto p-4">
+            <div class="flex flex-row -mx-3">
+              <div class="flex-none w-2/3 max-w-full px-3">
+                <div>
+                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Total de Empleados</p>
+                  <br>
+                  <h5 class="mb-2 font-bold dark:text-white">{{ active_employees }}</h5>
+                  <p class="mb-0 dark:text-white dark:opacity-60">
+                    <span class="text-sm font-bold leading-normal text-red-600"></span>
+                  </p>
+                </div>
+              </div>
+              <div class="px-3 text-right basis-1/3">
+                <div class="inline-block w-12 h-12 text-center rounded-circle bg-gradient-to-tl from-emerald-500 to-teal-400">
+                  <i class="ni leading-none ni-paper-diploma text-lg relative top-3.5 text-white"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-{% endblock %}
-{% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
+      <!-- card4 -->
+      <div class="w-full max-w-full px-3 sm:w-1/2 sm:flex-none xl:w-1/4">
+        <div class="relative flex flex-col min-w-0 break-words bg-white shadow-xl dark:bg-slate-850 dark:shadow-dark-xl rounded-2xl bg-clip-border">
+          <div class="flex-auto p-4">
+            <div class="flex flex-row -mx-3">
+              <div class="flex-none w-2/3 max-w-full px-3">
+                <div>
+                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Obras Activas</p>
+                  <br>
+                  <h5 class="mb-2 font-bold dark:text-white">{{ active_projects }}</h5>
+                  <p class="mb-0 dark:text-white dark:opacity-60">
+                    <span class="text-sm font-bold leading-normal text-emerald-500"></span>
+                  </p>
+                </div>
+              </div>
+              <div class="px-3 text-right basis-1/3">
+                <div class="inline-block w-12 h-12 text-center rounded-circle bg-gradient-to-tl from-orange-500 to-yellow-500">
+                  <i class="ni leading-none ni-cart text-lg relative top-3.5 text-white"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>    
+                <div class="flex flex-wrap mt-6">
+                    <div class="w-full lg:w-1/2 pr-0 lg:pr-2">
+                        <p class="text-xl pb-3 flex items-center">
+                            <i class="fas fa-plus mr-3"></i> Monthly Reports
+                        </p>
+                        <div class="p-6 bg-white">
+                            <canvas id="chartOne" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                    <div class="w-full lg:w-1/2 pl-0 lg:pl-2 mt-12 lg:mt-0">
+                        <p class="text-xl pb-3 flex items-center">
+                            <i class="fas fa-check mr-3"></i> Resolved Reports
+                        </p>
+                        <div class="p-6 bg-white">
+                            <canvas id="chartTwo" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+    
+                <div class="w-full mt-12">
+                    <p class="text-xl pb-3 flex items-center">
+                        <i class="fas fa-list mr-3"></i> Latest Reports
+                    </p>
+                    <div class="bg-white overflow-auto">
+                        <table class="min-w-full bg-white">
+                            <thead class="bg-gray-800 text-white">
+                                <tr>
+                                    <th class="w-1/3 text-left py-3 px-4 uppercase font-semibold text-sm">Name</th>
+                                    <th class="w-1/3 text-left py-3 px-4 uppercase font-semibold text-sm">Last name</th>
+                                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Phone</th>
+                                    <th class="text-left py-3 px-4 uppercase font-semibold text-sm">Email</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-gray-700">
+                                <tr>
+                                    <td class="w-1/3 text-left py-3 px-4">Lian</td>
+                                    <td class="w-1/3 text-left py-3 px-4">Smith</td>
+                                    <td class="text-left py-3 px-4"><a class="hover:text-blue-500" href="tel:622322662">622322662</a></td>
+                                    <td class="text-left py-3 px-4"><a class="hover:text-blue-500" href="mailto:jonsmith@mail.com">jonsmith@mail.com</a></td>
+                                </tr>
+                                <tr class="bg-gray-200">
+                                    <td class="w-1/3 text-left py-3 px-4">Emma</td>
+                                    <td class="w-1/3 text-left py-3 px-4">Johnson</td>
+                                    <td class="text-left py-3 px-4"><a class="hover:text-blue-500" href="tel:622322662">622322662</a></td>
+                                    <td class="text-left py-3 px-4"><a class="hover:text-blue-500" href="mailto:jonsmith@mail.com">jonsmith@mail.com</a></td>
+                                </tr>
+                                <tr>
+                                    <td class="w-1/3 text-left py-3 px-4">Oliver</td>
+                                    <td class="w-1/3 text-left py-3 px-4">Williams</td>
+                                    <td class="text-left py-3 px-4"><a class="hover:text-blue-500" href="tel:622322662">622322662</a></td>
+                                    <td class="text-left py-3 px-4"><a class="hover:text-blue-500" href="mailto:jonsmith@mail.com">jonsmith@mail.com</a></td>
+                                </tr>
+                                <tr class="bg-gray-200">
+                                    <td class="w-1/3 text-left py-3 px-4">Isabella</td>
+                                    <td class="w-1/3 text-left py-3 px-4">Brown</td>
+                                    <td class="text-left py-3 px-4"><a class="hover:text-blue-500" href="tel:622322662">622322662</a></td>
+                                    <td class="text-left py-3 px-4"><a class="hover:text-blue-500" href="mailto:jonsmith@mail.com">jonsmith@mail.com</a></td>
+                                </tr>
+                                <tr>
+                                    <td class="w-1/3 text-left py-3 px-4">Lian</td>
+                                    <td class="w-1/3 text-left py-3 px-4">Smith</td>
+                                    <td class="text-left py-3 px-4"><a class="hover:text-blue-500" href="tel:622322662">622322662</a></td>
+                                    <td class="text-left py-3 px-4"><a class="hover:text-blue-500" href="mailto:jonsmith@mail.com">jonsmith@mail.com</a></td>
+                                </tr>
+                                <tr class="bg-gray-200">
+                                    <td class="w-1/3 text-left py-3 px-4">Emma</td>
+                                    <td class="w-1/3 text-left py-3 px-4">Johnson</td>
+                                    <td class="text-left py-3 px-4"><a class="hover:text-blue-500" href="tel:622322662">622322662</a></td>
+                                    <td class="text-left py-3 px-4"><a class="hover:text-blue-500" href="mailto:jonsmith@mail.com">jonsmith@mail.com</a></td>
+                                </tr>
+                                <tr>
+                                    <td class="w-1/3 text-left py-3 px-4">Oliver</td>
+                                    <td class="w-1/3 text-left py-3 px-4">Williams</td>
+                                    <td class="text-left py-3 px-4"><a class="hover:text-blue-500" href="tel:622322662">622322662</a></td>
+                                    <td class="text-left py-3 px-4"><a class="hover:text-blue-500" href="mailto:jonsmith@mail.com">jonsmith@mail.com</a></td>
+                                </tr>
+                                <tr class="bg-gray-200">
+                                    <td class="w-1/3 text-left py-3 px-4">Isabella</td>
+                                    <td class="w-1/3 text-left py-3 px-4">Brown</td>
+                                    <td class="text-left py-3 px-4"><a class="hover:text-blue-500" href="tel:622322662">622322662</a></td>
+                                    <td class="text-left py-3 px-4"><a class="hover:text-blue-500" href="mailto:jonsmith@mail.com">jonsmith@mail.com</a></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
+                <!-- Font Awesome -->
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js" integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin="anonymous"></script>
+                <!-- ChartJS -->
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js" integrity="sha256-R4pqcOYV8lt7snxMQO/HSbVCFRPMdrhAFMH+vr9giYI=" crossorigin="anonymous"></script>
 
-document.addEventListener('DOMContentLoaded', function () {
-    const selector = document.getElementById('timePeriodSelector');
-    if (selector) {
-        selector.addEventListener('change', function (event) {
-            fetchAndUpdateChart(event.target.value);
-        });
-        // Initialize the chart with the default view (current week)
-        fetchAndUpdateChart('week');
-    } else {
-        console.error('Element #timePeriodSelector not found.');
-    }
-});
-
-document.addEventListener('DOMContentLoaded', function () {
-    const attendanceChartCtx = document.getElementById('attendanceChart').getContext('2d');
-    let attendanceChart;
-
-    // Function to update the chart with new data
-    function updateAttendanceChart(data) {
-        if (attendanceChart) {
-            attendanceChart.destroy();
-        }
-
-        attendanceChart = new Chart(attendanceChartCtx, {
-            type: 'pie',
-            data: {
-                labels: data.map(item => item.week || item.month),
-                datasets: [{
-                    label: 'Asistencia',
-                    data: data.map(item => item.total), 
-                    backgroundColor: [
-                        'rgba(255, 99, 132, 0.2)', // red
-                        'rgba(54, 162, 235, 0.2)', // blue
-                        'rgba(255, 206, 86, 0.2)',  // yellow
-                        'rgba(75, 192, 192, 0.2)', // green
-                        'rgba(153, 102, 255, 0.2)', // purple
-                        'rgba(255, 159, 64, 0.2)'   // orange
-                    ],
-                    borderColor: [
-                        'rgba(255, 99, 132, 1)', // red
-                        'rgba(54, 162, 235, 1)', // blue
-                        'rgba(255, 206, 86, 1)',  // yellow
-                        'rgba(75, 192, 192, 1)', // green
-                        'rgba(153, 102, 255, 1)', // purple
-                        'rgba(255, 159, 64, 1)'   // orange
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                legend: { position: 'bottom' },
-                title: { display: true, text: 'Asistencia por Obra' }
-            }
-        });
-    }
-
-   
-    // Function to fetch and update the chart based on the selected time period
-    function fetchAndUpdateChart(timeframe) {
-        fetch(`/dashboard-data?timeframe=${timeframe}`)
-            .then(response => response.json())
-            .then(data => updateAttendanceChart(data))
-            .catch(error => console.error('Error fetching attendance data:', error));
-    }
-
-    const selector = document.getElementById('timePeriodSelector');
-    if (selector) {
-        selector.addEventListener('change', function (event) {
-            fetchAndUpdateChart(event.target.value);
-        });
-
-        // Initialize the chart with the default view (current week)
-        fetchAndUpdateChart('week');
-    } else {
-        console.error('Element #timePeriodSelector not found.');
-    }
-});
-</script>
+                <script>
+                    var chartOne = document.getElementById('chartOne');
+                    var myChart = new Chart(chartOne, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+                            datasets: [{
+                                label: '# of Votes',
+                                data: [12, 19, 3, 5, 2, 3],
+                                backgroundColor: [
+                                    'rgba(255, 99, 132, 0.2)',
+                                    'rgba(54, 162, 235, 0.2)',
+                                    'rgba(255, 206, 86, 0.2)',
+                                    'rgba(75, 192, 192, 0.2)',
+                                    'rgba(153, 102, 255, 0.2)',
+                                    'rgba(255, 159, 64, 0.2)'
+                                ],
+                                borderColor: [
+                                    'rgba(255, 99, 132, 1)',
+                                    'rgba(54, 162, 235, 1)',
+                                    'rgba(255, 206, 86, 1)',
+                                    'rgba(75, 192, 192, 1)',
+                                    'rgba(153, 102, 255, 1)',
+                                    'rgba(255, 159, 64, 1)'
+                                ],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                yAxes: [{
+                                    ticks: {
+                                        beginAtZero: true
+                                    }
+                                }]
+                            }
+                        }
+                    });
+            
+                    var chartTwo = document.getElementById('chartTwo');
+                    var myLineChart = new Chart(chartTwo, {
+                        type: 'line',
+                        data: {
+                            labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+                            datasets: [{
+                                label: '# of Votes',
+                                data: [12, 19, 3, 5, 2, 3],
+                                backgroundColor: [
+                                    'rgba(255, 99, 132, 0.2)',
+                                    'rgba(54, 162, 235, 0.2)',
+                                    'rgba(255, 206, 86, 0.2)',
+                                    'rgba(75, 192, 192, 0.2)',
+                                    'rgba(153, 102, 255, 0.2)',
+                                    'rgba(255, 159, 64, 0.2)'
+                                ],
+                                borderColor: [
+                                    'rgba(255, 99, 132, 1)',
+                                    'rgba(54, 162, 235, 1)',
+                                    'rgba(255, 206, 86, 1)',
+                                    'rgba(75, 192, 192, 1)',
+                                    'rgba(153, 102, 255, 1)',
+                                    'rgba(255, 159, 64, 1)'
+                                ],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                yAxes: [{
+                                    ticks: {
+                                        beginAtZero: true
+                                    }
+                                }]
+                            }
+                        }
+                    });
+                </script>
 {% endblock %}

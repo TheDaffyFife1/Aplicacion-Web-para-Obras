@@ -42,53 +42,43 @@ def admin_dashboard(request):
     if request.user.userprofile.role != ADMIN_ROLE:
         return HttpResponseForbidden("No tienes permiso para ver esta página.")
 
-    # Assuming the end of a week is Sunday, to get the current week's start and end.
     today = timezone.now().date()
-    start_of_week = today - timezone.timedelta(days=today.weekday() + 1)
+    start_of_week = today - timezone.timedelta(days=today.weekday())
     end_of_week = start_of_week + timezone.timedelta(days=6)
 
-    # Aggregate data for the General Section
     weekly_payment = Empleado.objects.filter(
-        obra__activa=True,
-        obra__fecha_inicio__lte=end_of_week,
-        obra__fecha_fin__gte=start_of_week
-    ).aggregate(Sum('sueldo'))
+        Q(obra__activa=True) &
+        Q(obra__fecha_inicio__lte=end_of_week) &
+        Q(obra__fecha_fin__gte=start_of_week)
+    ).aggregate(total_payment=Sum('sueldo'))
 
-    attendance_by_project = (
-        Obra.objects.annotate(num_employees=Count('empleado'))
-        .values('nombre', 'num_employees')
-    )
+    attendance_by_project = Obra.objects.annotate(num_employees=Count('empleado')).values('nombre', 'num_employees')
 
     full_time_employees = Empleado.objects.filter(puesto__nombre='Jornada completa').count()
 
-    # Data for Administrator Views
-    active_projects = Obra.objects.filter(activa=True).count()
+    active_projects_count = Obra.objects.filter(activa=True).count()
+
     active_employees = Empleado.objects.filter(obra__activa=True).count()
-    project_progress_data = []  # You'll need to define how to calculate this
 
-    # Data for Individual Section
-    # This will require a more complex query or additional methods on your models
-    # to calculate the percentage of project completion.
-    project_completion_data = []  # Placeholder for project completion data
+    project_progress_data = [
+        {
+            'nombre': project.nombre,
+            'progress': min(((today - project.fecha_inicio).days / (project.fecha_fin - project.fecha_inicio).days) * 100, 100)
+        } for project in Obra.objects.filter(activa=True)
+    ]
+    
 
-    # Data for the table of employees working on the projects
-    employees_table_data = list(Empleado.objects.values(
-        'nombre', 'apellido', 'puesto__nombre', 'obra__nombre'
-    ))
-
-    # Render the dashboard with the collected context data
     context = {
-        'weekly_payment': weekly_payment,
+        'weekly_payment': weekly_payment['total_payment'],
         'attendance_by_project': attendance_by_project,
         'full_time_employees': full_time_employees,
-        'active_projects': active_projects,
+        'active_projects': active_projects_count,
         'active_employees': active_employees,
         'project_progress_data': project_progress_data,
-        'project_completion_data': project_completion_data,
-        'employees_table_data': employees_table_data,
     }
 
     return render(request, 'admin/admin_dashboard.html', context)
+
 @login_required
 def dashboard_data(request):
     # Ensure only admins can access this data
