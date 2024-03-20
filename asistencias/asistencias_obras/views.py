@@ -24,6 +24,8 @@ from django.db.models.functions import Coalesce
 from django.db.models import ExpressionWrapper, F, FloatField
 from django.db.models.functions import Cast
 from django.db.models import Count, Case, When, Q
+from django.utils.timezone import now
+
 
 @login_required
 def accesos(request):
@@ -436,3 +438,90 @@ def user_asistencia(request):
     else:
         return HttpResponseForbidden("No tienes permiso para ver esta página.")
 
+
+@login_required
+def progreso_obras(request):
+    objetos = Obra.objects.all()
+    hoy = now()
+    labels = []
+    data = []
+
+    for objeto in objetos:
+        tiempo_total = (objeto.fecha_fin - objeto.fecha_inicio).days
+        tiempo_transcurrido = (hoy.date() - objeto.fecha_inicio).days 
+        
+        porcentaje_transcurrido = (tiempo_transcurrido / tiempo_total) * 100 if tiempo_total else 0
+        porcentaje_transcurrido
+
+        labels.append(objeto.nombre)  # Agrega el nombre de la obra a la lista de etiquetas
+        data.append(abs(int(porcentaje_transcurrido))) # Agrega el porcentaje de progreso a la lista de datos
+
+    return JsonResponse({'labels': labels, 'data': data})
+
+@login_required
+def asistencia_obras(request):
+    # Asumiendo que tienes un campo que identifica cada día único de asistencia, por ejemplo 'fecha'
+    obras_con_asistencias = Obra.objects.annotate(
+        total_asistencias=Count('empleado__asistencia', distinct=True),
+        total_empleados=Count('empleado', distinct=True)
+    )
+
+    # Calcular el porcentaje de asistencias por obra
+    obras_data = []
+    for obra in obras_con_asistencias:
+        # Asumiendo que cada empleado debería haber asistido cada día
+        dias_laborales = obra.total_asistencias / obra.total_empleados if obra.total_empleados else 0
+        porcentaje = (obra.total_asistencias / (obra.total_empleados * dias_laborales) * 100) if dias_laborales else 0
+        obras_data.append({
+            'obra_nombre': obra.nombre,
+            'porcentaje_asistencia': porcentaje
+        })
+
+    # Retorna la información en formato JSON
+    return JsonResponse({'obras': obras_data})
+
+@login_required
+def obras_con_empleados(request):
+    # Suponiendo que tienes un modelo 'Obra' y un modelo 'Empleado' con una FK a 'Obra'
+    todas_las_obras = Obra.objects.prefetch_related('empleado_set').all()
+
+    # Construye un diccionario para cada obra con su lista de empleados
+    data = [
+        {
+            'obra_id': obra.id,
+            'obra_nombre': obra.nombre,
+            'empleados': [
+                {
+                    'empleado_id': empleado.id,
+                    'empleado_nombre': empleado.nombre,
+                    'empleado_puesto_id': empleado.puesto.id,
+                }
+                for empleado in obra.empleado_set.all()
+            ]
+        }
+        for obra in todas_las_obras
+    ]
+
+    return JsonResponse({'obras': data})
+
+@login_required
+def progreso_obras_indivual(request):
+    objetos = Obra.objects.all()
+    hoy = now()
+    labels = []
+    data = []
+    resto = []
+
+    for objeto in objetos:
+        tiempo_total = (objeto.fecha_fin - objeto.fecha_inicio).days
+        tiempo_transcurrido = (hoy.date() - objeto.fecha_inicio).days 
+        
+        porcentaje_transcurrido = (tiempo_transcurrido / tiempo_total) * 100 if tiempo_total else 0
+        restante = 100 - abs(porcentaje_transcurrido) 
+        
+        labels.append(objeto.nombre)  # Agrega el nombre de la obra a la lista de etiquetas
+        data.append(abs(int(porcentaje_transcurrido))) # Agrega el porcentaje de progreso a la lista de datos
+        resto.append(int(restante))
+
+
+    return JsonResponse({'labels': labels, 'data': data, 'resto': resto})

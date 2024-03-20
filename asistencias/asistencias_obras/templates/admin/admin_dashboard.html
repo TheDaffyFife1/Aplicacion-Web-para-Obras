@@ -1,8 +1,51 @@
-{% extends "layouts/base_admin.html" %}
+{% extends "layouts/base_admin.html" %} {% block content %}
+<meta name="csrf-token" content="{{ csrf_token }}" />
 
-{% block content %}
-<meta name="csrf-token" content="{{ csrf_token }}">
+<head>  
+  <style>
+  .grid-container {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr); /* crea 2 columnas */
+        grid-gap: 20px; /* espacio entre las columnas */
+        padding: 20px;
 
+    }
+    .grid-item {
+        background-color: #f7f7f7; /* color de fondo para cada elemento de la grilla */
+        border: 1px solid #e7e7e7; /* borde para cada elemento de la grilla */
+        padding: 20px; /* espacio interior para cada elemento de la grilla */
+        border-radius: 5px; /* esquinas redondeadas para cada elemento de la grilla */
+
+    } 
+
+.grid-item canvas {
+    width: 100% !important;
+    height: 100% !important; /* Esto asumirá la altura del contenedor padre */
+    min-height: 300px; /* Puedes ajustar esto según sea necesario */
+    max-height: 400px; /* Puedes ajustar esto según sea necesario */
+    min-width: 300px; /* Puedes ajustar esto según sea necesario */
+    max-width: 400px; /* Puedes ajustar esto según sea necesario */
+    margin: 0 auto; /* Centra el elemento */
+    display: block; /* Evita el espacio adicional debajo del elemento */
+    border-radius: 5px; /* esquinas redondeadas para cada elemento de la grilla */
+    
+}
+
+    .canvas_especial {
+        
+        min-width: 600px;
+        max-width: 100%;
+        height: 400px; /* Puedes ajustar esto según sea necesario */
+        margin: 0 auto; /* Centra el elemento */
+        display: block; /* Evita el espacio adicional debajo del elemento */
+        border-radius: 5px; /* esquinas redondeadas para cada elemento de la grilla */
+                            
+    }
+   
+
+    </style>
+</head>
+<div>
 <h1 class="text-3xl text-black pb-6">Dashboard</h1>
 <div class="max-w-full px-6 py-6 mx-auto" id="summary-info"></div>
 <div class="flex flex-wrap -mx-3">
@@ -11,7 +54,7 @@
       <i class="fas fa-plus mr-3"></i> Empleados por Obra
     </p>
     <div class="p-6 bg-white shadow-md rounded-lg">
-      <canvas id="attendance-chart" class="w-full h-auto"></canvas>
+      <canvas id="attendance-chart" class="w-full"></canvas>
     </div>
   </div>
   <div class="w-full md:w-1/2 px-3">
@@ -19,32 +62,354 @@
       <i class="fas fa-check mr-3"></i> Progreso de Obra
     </p>
     <div class="p-6 bg-white shadow-md rounded-lg">
-      <canvas id="progress-chart" class="w-full h-auto"></canvas>
+      <canvas id="progress-chart" class="w-full"></canvas>
     </div>
   </div>
 </div>
-<script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
-                <!-- Font Awesome -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js" integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin="anonymous"></script>
-                <!-- ChartJS -->
+
+
+
+<div class="p-4 rounded-lg" >
+  <div class="p-4 bg-white shadow-md rounded-lg">
+      <p class="text-xl pb-3 flex items-center">
+          <i class="fas fa-plus mr-3"></i> Progreso de obras
+      </p>
+      <div class="w-full flex justify-center">
+          <canvas id="transcurrido" class="canvas_especial" ></canvas>
+      </div>
+  </div>
+  <div class="bg-white p-4 mt-4">
+      <p class="text-xl pb-3 flex items-center">
+          <i class="fas fa-check mr-3"></i> Asistencia de empleados
+      </p>
+      <div class="w-full flex justify-center">
+          <canvas id="asistencia" class="canvas_especial"></canvas>
+      </div>
+     
+  </div>
+</div>
+
+<div class="w-full mt-12 bg-white rounded-lg">
+  <div class="p-4 bg-white shadow-md rounded-lg">                   
+
+  <table id="tablaObras" class="table table-striped">
+     <thead class="bg-gray-800 text-white">
+         <tr>
+             <th class="w-1/3 text-left py-3 px-4 uppercase font-semibold text-sm">Obra</th>
+             <th class="w-1/3 text-left py-3 px-4 uppercase font-semibold text-sm">Empleados</th>
+         </tr>
+     </thead>
+     <tbody>
+         <!--Datos obtenidos con AJAX-->
+     </tbody>
+  </table>
+  </div>    
+</div>
+
+<div class="flex flex-wrap mt-6">
+  <p class="text-xl pb-3 flex items-center">
+      <i class="fas fa-check mr-3"></i> Progreso de Obras Individuales
+  </p>
+  <div class="grid-container " id="chart-container">
+      <!-- Gráficas de pastel de progreso de obras -->
+  </div>
+
+
+</div>
+
+</div>
+
+<script
+  src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js"
+  defer
+></script>
+<!-- Font Awesome -->
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js"
+  integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs="
+  crossorigin="anonymous"
+></script>
+<!-- ChartJS -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  const csrftoken = document.querySelector('[name=csrf-token]').content;
+  $(document).ready(function () {
+    $.ajax({
+      url: "/ajax/progreso_obras_indivual/", // URL del endpoint
+      method: "GET",
+      dataType: "json",
+      success: function (response) {
+        console.log(response);
+        var contenedor = $("#chart-container");
+        contenedor.empty(); // Limpiar el contenedor para nuevas gráficas
 
-fetchSummaryData(csrftoken);
-fetchAttendanceByProject(csrftoken);
-fetchProjectProgress(csrftoken);
+        response.labels.forEach(function (label, index) {
+          // Crea un nuevo div que actuará como contenedor para la gráfica de pastel y el título
+          var graficaDiv = $("<div>").addClass("grid-item bg-white rounded-lg shadow-md");
 
-});
+          // Crea y añade un párrafo como título con el nombre de la obra
+          var titulo = $("<p>").text(label);
+          graficaDiv.append(titulo);
 
-function fetchSummaryData(csrftoken) {
-    fetch('/summary-data/')
-        .then(response => response.json())
-        .then(data => {
-            const summaryContainer = document.getElementById('summary-info');
-            summaryContainer.innerHTML = `
+          // Añade el elemento canvas al div contenedor
+          var canvasId = "graficaPastel" + index;
+          var canvas = $("<canvas>").attr("id", canvasId);
+          graficaDiv.append(canvas);
+
+          // Añade el div contenedor al contenedor principal
+          contenedor.append(graficaDiv);
+
+          // Calcula el progreso y el resto hasta el 100%
+          var progreso = response.data[index];
+          var resto = response.resto[index];
+          var texto = response.labels[index];
+
+          // Crea la gráfica de pastel para esta obra
+          var ctx = canvas.get(0).getContext("2d");
+          new Chart(ctx, {
+            type: "pie",
+            data: {
+              labels: ["Progreso", "Restante"],
+              datasets: [
+                {
+                  data: [progreso, resto],
+                  backgroundColor: ["#4CAF50", "#FFC107"], // Verde para progreso, amarillo para lo restante
+                  borderColor: ["#ffffff", "#ffffff"],
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  display: true,
+                },
+                title: {
+                  display: true,
+                  text: label, // Nombre de la obra como título de la gráfica
+                },
+              },
+            },
+          });
+        });
+      },
+      error: function (xhr, status, error) {
+        console.error("Error en la solicitud AJAX: ", xhr, status, error);
+      },
+    });
+  });
+
+  $(document).ready(function () {
+    $.ajax({
+      url: "/ajax/obras_con_empleados/",
+      method: "GET",
+      success: function (response) {
+        var tabla = $("#tablaObras tbody");
+        tabla.empty(); // Limpia la tabla antes de llenarla con nuevos datos
+
+        response.obras.forEach(function (obra) {
+          var fila = $("<tr></tr>");
+          fila.append(
+            '<td class="w-1/3 text-left py-3 px-4">' +
+              obra.obra_nombre +
+              "</td>"
+          );
+
+          var listaEmpleados = obra.empleados
+            .map(function (empleado) {
+              return empleado.empleado_nombre;
+            })
+            .join(", "); // Crea una lista separada por comas de los nombres de los empleados
+
+          fila.append(
+            '<td class="w-1/3 text-left py-3 px-4">' + listaEmpleados + "</td>"
+          );
+
+          tabla.append(fila);
+        });
+      },
+    });
+  });
+
+  $(document).ready(function () {
+    $.ajax({
+      url: "/ajax/progreso_obras/",
+      method: "GET",
+      success: function (respuesta) {
+        crearGrafica(
+          respuesta.labels,
+          respuesta.data,
+          "polarArea",
+          "transcurrido"
+        );
+      },
+    });
+  });
+  $(document).ready(function () {
+    $.ajax({
+      url: "/ajax/asistencia_obras/",
+      method: "GET",
+      success: function (respuesta) {
+        var etiquetas = respuesta.obras.map(function (obra) {
+          return obra.obra_nombre;
+        });
+        var datos = respuesta.obras.map(function (obra) {
+          return obra.porcentaje_asistencia;
+        });
+
+        crearGraficaDeRadar(etiquetas, datos, "asistencia");
+      },
+    });
+  });
+
+  function crearGrafica(etiquetas, datos, type, nombre) {
+    var ctx = document.getElementById(nombre).getContext("2d");
+    var miGraficaDePastel = new Chart(ctx, {
+      type: type,
+      data: {
+        labels: etiquetas,
+        datasets: [
+          {
+            label: "Grafica",
+            data: datos,
+            backgroundColor: [
+              "rgba(255, 99, 132, 0.2)",
+              "rgba(54, 162, 235, 0.2)",
+              "rgba(255, 206, 86, 0.2)",
+              "rgba(75, 192, 192, 0.2)",
+              "rgba(153, 102, 255, 0.2)",
+              "rgba(255, 159, 64, 0.2)",
+              "rgba(255, 99, 132, 0.2)",
+              "rgba(54, 162, 235, 0.2)",
+              "rgba(255, 206, 86, 0.2)",
+              "rgba(75, 192, 192, 0.2)",
+              "rgba(153, 102, 255, 0.2)",
+              "rgba(255, 159, 64, 0.2)",
+              "rgba(255, 99, 132, 0.2)",
+              "rgba(54, 162, 235, 0.2)",
+              "rgba(255, 206, 86, 0.2)",
+              "rgba(75, 192, 192, 0.2)",
+              "rgba(153, 102, 255, 0.2)",
+              "rgba(255, 159, 64, 0.2)",
+              "rgba(255, 99, 132, 0.2)",
+              "rgba(54, 162, 235, 0.2)",
+              "rgba(255, 206, 86, 0.2)",
+              "rgba(75, 192, 192, 0.2)",
+              "rgba(153, 102, 255, 0.2)",
+            ],
+            borderColor: [
+              "rgba(255, 99, 132, 1)",
+              "rgba(54, 162, 235, 1)",
+              "rgba(255, 206, 86, 1)",
+              "rgba(75, 192, 192, 1)",
+              "rgba(153, 102, 255, 1)",
+              "rgba(255, 159, 64, 1)",
+              "rgba(255, 99, 132, 1)",
+              "rgba(54, 162, 235, 1)",
+              "rgba(255, 206, 86, 1)",
+              "rgba(75, 192, 192, 1)",
+              "rgba(153, 102, 255, 1)",
+              "rgba(255, 159, 64, 1)",
+              "rgba(255, 99, 132, 1)",
+              "rgba(54, 162, 235, 1)",
+              "rgba(255, 206, 86, 1)",
+              "rgba(75, 192, 192, 1)",
+              "rgba(153, 102, 255, 1)",
+              "rgba(255, 159, 64, 1)",
+              "rgba(255, 99, 132, 1)",
+              "rgba(54, 162, 235, 1)",
+              "rgba(255, 206, 86, 1)",
+              "rgba(75, 192, 192, 1)",
+              "rgba(153, 102, 255, 1)",
+            ],
+            borderWidth: 1,
+          },
+        ],
+      },
+
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          r: {
+            ticks: {
+              beginAtZero: true,
+              min: 1,
+              max: 100,
+              stepSize: 10,
+            },
+          },
+        },
+      },
+      plugins: {
+        legend: {
+          position: "top",
+        },
+      },
+    });
+  }
+  function crearGraficaDeRadar(etiquetas, datos, nombre) {
+    var ctx = document.getElementById(nombre).getContext("2d");
+    var miGraficaDeRadar = new Chart(ctx, {
+      type: "radar",
+      data: {
+        labels: etiquetas, // Las etiquetas son comúnmente categorías o grupos
+        datasets: [
+          {
+            label: "Asistencias por obras",
+            data: datos, // Los datos numéricos para cada etiqueta
+            fill: true,
+            backgroundColor: [
+              "rgba(255, 99, 132, 0.2)",
+              "rgba(54, 162, 235, 0.2)",
+              "rgba(255, 206, 86, 0.2)",
+              "rgba(75, 192, 192, 0.2)",
+              "rgba(153, 102, 255, 0.2)",
+              "rgba(255, 159, 64, 0.2)",
+            ],
+            borderColor: [
+              "rgba(255, 99, 132, 1)",
+              "rgba(54, 162, 235, 1)",
+              "rgba(255, 206, 86, 1)",
+              "rgba(75, 192, 192, 1)",
+              "rgba(153, 102, 255, 1)",
+              "rgba(255, 159, 64, 1)",
+            ],
+            pointBackgroundColor: "rgb(255, 99, 132)",
+            pointBorderColor: "#fff",
+            pointHoverBackgroundColor: "#fff",
+            pointHoverBorderColor: "rgb(255, 99, 132)",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        elements: {
+          line: {
+            borderWidth: 3,
+          },
+        },
+      },
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const csrftoken = document.querySelector("[name=csrf-token]").content;
+
+    fetchSummaryData(csrftoken);
+    fetchAttendanceByProject(csrftoken);
+    fetchProjectProgress(csrftoken);
+  });
+
+  function fetchSummaryData(csrftoken) {
+    fetch("/summary-data/")
+      .then((response) => response.json())
+      .then((data) => {
+        const summaryContainer = document.getElementById("summary-info");
+        summaryContainer.innerHTML = `
             <div class="w-full px-6 py-6 mx-auto">
               <!-- row 1 -->
               <div class="flex flex-wrap -mx-3">
@@ -142,106 +507,108 @@ function fetchSummaryData(csrftoken) {
     </div>    
           
             `;
-        })
-        .catch(error => console.error('Error:', error));
-}
+      })
+      .catch((error) => console.error("Error:", error));
+  }
 
-function fetchAttendanceByProject(csrftoken) {
-    fetch('/attendance-by-project/')
-        .then(response => response.json())
-        .then(data => {
-            const labels = data.map(item => item.nombre);
-            const fullTimeData = data.map(item => item.full_time);
-            const partTimeData = data.map(item => item.part_time);
-            const notAttendedData = data.map(item => item.not_attended);
+  function fetchAttendanceByProject(csrftoken) {
+    fetch("/attendance-by-project/")
+      .then((response) => response.json())
+      .then((data) => {
+        const labels = data.map((item) => item.nombre);
+        const fullTimeData = data.map((item) => item.full_time);
+        const partTimeData = data.map((item) => item.part_time);
+        const notAttendedData = data.map((item) => item.not_attended);
 
-            const ctx = document.getElementById('attendance-chart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Jornada Completa',
-                            data: fullTimeData,
-                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                            borderColor: 'rgba(54, 162, 235, 1)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'Media Jornada',
-                            data: partTimeData,
-                            backgroundColor: 'rgba(255, 206, 86, 0.2)',
-                            borderColor: 'rgba(255, 206, 86, 1)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'No Asistieron',
-                            data: notAttendedData,
-                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                            borderColor: 'rgba(255, 99, 132, 1)',
-                            borderWidth: 1
-                        }
-                    ]
-                },
-                options: {
-                  responsive: true,
-                  maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-        })
-        .catch(error => console.error('Error:', error));
-}
+        const ctx = document
+          .getElementById("attendance-chart")
+          .getContext("2d");
+        new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "Jornada Completa",
+                data: fullTimeData,
+                backgroundColor: "rgba(54, 162, 235, 0.2)",
+                borderColor: "rgba(54, 162, 235, 1)",
+                borderWidth: 1,
+              },
+              {
+                label: "Media Jornada",
+                data: partTimeData,
+                backgroundColor: "rgba(255, 206, 86, 0.2)",
+                borderColor: "rgba(255, 206, 86, 1)",
+                borderWidth: 1,
+              },
+              {
+                label: "No Asistieron",
+                data: notAttendedData,
+                backgroundColor: "rgba(255, 99, 132, 0.2)",
+                borderColor: "rgba(255, 99, 132, 1)",
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+              },
+            },
+          },
+        });
+      })
+      .catch((error) => console.error("Error:", error));
+  }
 
-function fetchProjectProgress(csrftoken) {
-    fetch('/project-progress/')
-        .then(response => response.json())
-        .then(data => {
-            const labels = data.map(item => item.nombre);
-            const progressData = data.map(item => item.progress);
+  function fetchProjectProgress(csrftoken) {
+    fetch("/project-progress/")
+      .then((response) => response.json())
+      .then((data) => {
+        const labels = data.map((item) => item.nombre);
+        const progressData = data.map((item) => item.progress);
 
-            const ctx = document.getElementById('progress-chart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Progreso de la Obra (%)',
-                        data: progressData,
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        borderWidth: 2,
-                        fill: false,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    },
-                    animation: {
-                        duration: 800,
-                        easing: 'easeInOutQuad'
-                    },
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        },
-
-                    }
-                }
-            });
-        })
-        .catch(error => console.error('Error:', error));
-}
-
+        const ctx = document.getElementById("progress-chart").getContext("2d");
+        new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "Progreso de la Obra (%)",
+                data: progressData,
+                backgroundColor: "rgba(75, 192, 192, 0.2)",
+                borderColor: "rgba(75, 192, 192, 1)",
+                borderWidth: 2,
+                fill: false,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+              },
+            },
+            animation: {
+              duration: 800,
+              easing: "easeInOutQuad",
+            },
+            plugins: {
+              legend: {
+                position: "top",
+              },
+            },
+          },
+        });
+      })
+      .catch((error) => console.error("Error:", error));
+  }
 </script>
 {% endblock %}

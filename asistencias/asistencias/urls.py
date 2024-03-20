@@ -17,7 +17,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path
-from asistencias_obras.views import reporte_asistencia,editar_empleado,lista_obras,accesos, register, admin_dashboard, rh_dashboard, user_asistencia,crear_obra,cambiar_estado_obra, eliminar_obra, editar_obra,lista_user_profiles,asignar_obra_a_usuario,lista_empleados,crear_empleado
+from asistencias_obras.views import asistencia_obras, obras_con_empleados, progreso_obras, progreso_obras_indivual, reporte_asistencia,editar_empleado,lista_obras,accesos, register, admin_dashboard, rh_dashboard, user_asistencia,crear_obra,cambiar_estado_obra, eliminar_obra, editar_obra,lista_user_profiles,asignar_obra_a_usuario,lista_empleados,crear_empleado
 from django.contrib.auth import views as auth_views
 from asistencias_obras import views
 from asistencias_obras.api import registrar_asistencia
@@ -52,6 +52,13 @@ urlpatterns = [
     path('attendance-by-project/', views.attendance_by_project, name='attendance_by_project'),
     path('project-progress/', views.project_progress, name='project_progress'),
     path('summary-data/', views.summary_data, name='summary_data'),
+
+
+    #dashboard Ashwin
+    path('ajax/progreso_obras/', progreso_obras, name='progreso_obras'),
+    path('ajax/asistencia_obras/', asistencia_obras, name='asistencia_obras'),
+    path('ajax/obras_con_empleados/', obras_con_empleados, name='obras_con_empleados'),
+    path('ajax/progreso_obras_indivual/', progreso_obras_indivual, name='progreso_obras_indivual'),
     # ... other paths ...
 ]
 
