@@ -482,7 +482,7 @@ def asistencia_obras(request):
 
 @login_required
 def obras_con_empleados(request):
-    # Suponiendo que tienes un modelo 'Obra' y un modelo 'Empleado' con una FK a 'Obra'
+    #  modelo 'Obra' y  modelo 'Empleado' con una llave foranea a 'Obra'
     todas_las_obras = Obra.objects.prefetch_related('empleado_set').all()
 
     # Construye un diccionario para cada obra con su lista de empleados
@@ -525,3 +525,7 @@ def progreso_obras_indivual(request):
 
 
     return JsonResponse({'labels': labels, 'data': data, 'resto': resto})
+
+@login_required
+def tabla_pagos(request):
+    ...
