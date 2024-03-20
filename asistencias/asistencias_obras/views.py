@@ -231,50 +231,49 @@ def project_progress(request):
     return JsonResponse(list(progress_data), safe=False)
 
 @login_required
-def summary_data(request):
+def summary_week_data(request):
     today = timezone.now().date()
-    # Asistencia válida para hoy
-    valid_attendances = Asistencia.objects.filter(
-        fecha=today,
+    this_week_start = today - timezone.timedelta(days=today.weekday())
+    this_week_end = this_week_start + timezone.timedelta(days=6)  # Semana de lunes a domingo
+
+    # Asistencia válida para la semana actual
+    valid_attendances_week = Asistencia.objects.filter(
+        fecha__gte=this_week_start,
+        fecha__lte=this_week_end,
         entrada__isnull=False,
         salida__isnull=False
     ).select_related('empleado')
 
-    # Calcular el sueldo total del día basado en la asistencia válida
-    total_payment_for_today = round(sum(
-        (empleado.empleado.sueldo / 6) for empleado in valid_attendances
+    # Calcular el sueldo total de la semana basado en la asistencia válida
+    total_payment_for_week = round(sum(
+        (empleado.empleado.sueldo / 6) * valid_attendances_week.filter(empleado=empleado.empleado).count() for empleado in valid_attendances_week
     ), 2)
-    jornadas_completas = sum(1 for empleado in valid_attendances if empleado.entrada and empleado.salida)
-    # Continuamos con el cálculo de asistencia semanal y mensual como se mostró anteriormente
-    this_week_start = today - timezone.timedelta(days=today.weekday())
-    this_week_end = this_week_start + timezone.timedelta(days=5)  # Ajuste para una semana de 6 días
+
+    # Calcular jornadas completas de la semana
+    jornadas_completas_week = sum(1 for empleado in valid_attendances_week if empleado.entrada and empleado.salida)
+
+    # Asistencia mensual
     this_month_start = today.replace(day=1)
     next_month_start = (this_month_start + timezone.timedelta(days=31)).replace(day=1)
     this_month_end = next_month_start - timezone.timedelta(days=1)
-
-    weekly_attendance_count = valid_attendances.filter(
-        fecha__gte=this_week_start,
-        fecha__lte=this_week_end
-    ).count()
-
-    monthly_attendance_count = valid_attendances.filter(
+    monthly_attendance_count = valid_attendances_week.filter(
         fecha__gte=this_month_start,
         fecha__lte=this_month_end
     ).count()
 
+    # Contar proyectos y empleados activos
     active_projects_count = Obra.objects.filter(activa=True).count()
     active_employees_count = Empleado.objects.filter(obra__activa=True).distinct().count()
 
     summary = {
         'active_projects': active_projects_count,
         'active_employees': active_employees_count,
-        'total_payment_for_today': total_payment_for_today,
-        'weekly_attendance_count': weekly_attendance_count,
+        'total_payment_for_week': total_payment_for_week,
+        'weekly_attendance_count': valid_attendances_week.count(),
         'monthly_attendance_count': monthly_attendance_count,
-        'jornadas_completas': jornadas_completas,  # Agregado al resumen
-
+        'jornadas_completas_week': jornadas_completas_week,  # Actualizado para la semana
     }
-    
+
     return JsonResponse(summary)
 
 #Funciones para RH
