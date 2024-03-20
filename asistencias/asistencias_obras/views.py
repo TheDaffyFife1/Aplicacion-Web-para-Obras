@@ -185,34 +185,45 @@ def lista_user_profiles(request):
 
 
 @login_required
-def attendance_by_project(request):
-    # Asegúrate de reemplazar 'Obra' con el nombre de tu modelo de proyecto si es diferente
+def attendance_by_week_project(request):
+    # Obtener la fecha de inicio y fin de la semana actual
+    today = timezone.now().date()
+    week_start = today - timezone.timedelta(days=today.weekday())  # Lunes
+    week_end = week_start + timezone.timedelta(days=6)  # Domingo
+
+    # Ajustar la consulta para calcular asistencia semanal por proyecto
     attendance_data = Obra.objects.annotate(
         full_time=Count(
             Case(
-                When(empleado__asistencia__entrada__isnull=False, 
-                     empleado__asistencia__salida__isnull=False, 
-                     empleado__asistencia__fecha=timezone.now().date(),
-                     then=1)
+                When(
+                    empleado__asistencia__entrada__isnull=False, 
+                    empleado__asistencia__salida__isnull=False, 
+                    empleado__asistencia__fecha__range=(week_start, week_end),
+                    then=1
+                )
             )
         ),
         part_time=Count(
             Case(
-                When(empleado__asistencia__entrada__isnull=False, 
-                     empleado__asistencia__salida__isnull=True, 
-                     empleado__asistencia__fecha=timezone.now().date(),
-                     then=1)
+                When(
+                    empleado__asistencia__entrada__isnull=False, 
+                    empleado__asistencia__salida__isnull=True, 
+                    empleado__asistencia__fecha__range=(week_start, week_end),
+                    then=1
+                )
             )
         ),
         not_attended=Count(
             Case(
-                When(empleado__asistencia__entrada__isnull=True, 
-                     empleado__asistencia__fecha=timezone.now().date(),
-                     then=1)
+                When(
+                    empleado__asistencia__entrada__isnull=True, 
+                    empleado__asistencia__fecha__range=(week_start, week_end),
+                    then=1
+                )
             )
         ),
     ).values('nombre', 'full_time', 'part_time', 'not_attended')
-    
+
     return JsonResponse(list(attendance_data), safe=False)
 
 @login_required
@@ -242,24 +253,19 @@ def summary_week_data(request):
         fecha__lte=this_week_end,
         entrada__isnull=False,
         salida__isnull=False
-    ).select_related('empleado')
+    ).values('empleado', 'fecha').annotate(daily_payment=Sum(F('empleado__sueldo')/6)).order_by('empleado')
+
+    # Inicializar el total del pago para la semana
+    total_payment_for_week = 0
 
     # Calcular el sueldo total de la semana basado en la asistencia válida
-    total_payment_for_week = round(sum(
-        (empleado.empleado.sueldo / 6) * valid_attendances_week.filter(empleado=empleado.empleado).count() for empleado in valid_attendances_week
-    ), 2)
+    for attendance in valid_attendances_week:
+        total_payment_for_week += attendance['daily_payment']
+
+    total_payment_for_week = round(total_payment_for_week, 2)
 
     # Calcular jornadas completas de la semana
-    jornadas_completas_week = sum(1 for empleado in valid_attendances_week if empleado.entrada and empleado.salida)
-
-    # Asistencia mensual
-    this_month_start = today.replace(day=1)
-    next_month_start = (this_month_start + timezone.timedelta(days=31)).replace(day=1)
-    this_month_end = next_month_start - timezone.timedelta(days=1)
-    monthly_attendance_count = valid_attendances_week.filter(
-        fecha__gte=this_month_start,
-        fecha__lte=this_month_end
-    ).count()
+    jornadas_completas_week = sum(1 for _ in valid_attendances_week)
 
     # Contar proyectos y empleados activos
     active_projects_count = Obra.objects.filter(activa=True).count()
@@ -270,8 +276,7 @@ def summary_week_data(request):
         'active_employees': active_employees_count,
         'total_payment_for_week': total_payment_for_week,
         'weekly_attendance_count': valid_attendances_week.count(),
-        'monthly_attendance_count': monthly_attendance_count,
-        'jornadas_completas_week': jornadas_completas_week,  # Actualizado para la semana
+        'jornadas_completas_week': jornadas_completas_week,
     }
 
     return JsonResponse(summary)

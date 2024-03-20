@@ -21,7 +21,7 @@ from asistencias_obras.views import asistencia_obras, obras_con_empleados, progr
 from django.contrib.auth import views as auth_views
 from asistencias_obras import views
 from asistencias_obras.api import registrar_asistencia
-from asistencias_obras.views import attendance_by_project,project_progress,summary_week_data
+from asistencias_obras.views import attendance_by_week_project,project_progress,summary_week_data
 
 
 
@@ -49,7 +49,7 @@ urlpatterns = [
     path('api/registrar_asistencia/', registrar_asistencia, name='registrar_asistencia'),
     path('reporte-asistencia/', reporte_asistencia, name='reporte_asistencia'),
     path('reporte-asistencia/<str:fecha_referencia>/', reporte_asistencia, name='reporte_asistencia_con_fecha'),
-    path('attendance-by-project/', views.attendance_by_project, name='attendance_by_project'),
+    path('attendance-by-project/', views.attendance_by_week_project, name='attendance_by_project'),
     path('project-progress/', views.project_progress, name='project_progress'),
     path('summary-data/', views.summary_week_data, name='summary_data'),
 
