@@ -430,6 +430,7 @@ $(document).ready(function() {
         var conjunto = $('#conjuntoDropdown').val(); // Obtiene el conjunto seleccionado
         cargarDatos('custom', conjunto); // Carga datos para el conjunto seleccionado. Asegúrate que tu backend maneje 'custom'
     });
+    $('#asistenciaSemanal').click();
 
     function cargarDatos(timeRange, conjunto) {
         $.ajax({

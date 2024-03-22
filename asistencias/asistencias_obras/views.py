@@ -479,7 +479,7 @@ def asistencia_obras(request):
         end_date = start_date + timedelta(days=6 + (conjunto - 1) * 7)
     elif time_range == 'monthly':
         # Ajusta el rango al mes actual y va hacia atrás según el conjunto indicado
-        start_date = today.replace(day=1) - timedelta(days=31 * (conjunto - 1))
+        start_date = today.replace(day=1) - timedelta(days=31)
         end_date = today
 
     # Filtrar asistencias dentro del rango de fechas
