@@ -2,6 +2,11 @@
 <meta name="csrf-token" content="{{ csrf_token }}" />
 
 <head>  
+  <!-- Bootstrap CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css">
+<!-- DataTables Bootstrap 5 CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/2.0.3/css/dataTables.bootstrap5.css">
+
   <style>
   .grid-container {
         display: grid;
@@ -189,8 +194,20 @@
 <!-- ChartJS -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<script>
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+<!-- Bootstrap Bundle JS (incluye Popper) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/2.0.3/js/dataTables.js"></script>
+<!-- DataTables Bootstrap 5 JS -->
+<script src="https://cdn.datatables.net/2.0.3/js/dataTables.bootstrap5.js"></script>
 
+
+<script>
+new DataTable('#tablaPagosEmpleados');
+new DataTable('#tablaPagosObra');
+new DataTable('#tablaObras');
 
 $(document).ready(function() {
     // Función para cargar los datos

@@ -558,13 +558,19 @@ def tabla_pagos(request):
     # Agregar conteo de asistencias válidas y calcular el pago
     payment_data = valid_attendances.annotate(
         days_worked=Count('fecha'),
-        total_payment=Coalesce(F('days_worked') * F('empleado__puesto__sueldo_base'), 0, output_field=DecimalField())
+        total_payment=ExpressionWrapper(
+            Coalesce(F('days_worked') * (F('empleado__puesto__sueldo_base')/6), 0),
+            output_field=DecimalField(max_digits=10, decimal_places=2)
+        )
     ).order_by('empleado')
+
+    
 
     # Preparar la respuesta
     response_data = list(payment_data.values('empleado__nombre', 'empleado__obra__nombre', 'days_worked', 'total_payment'))
 
     response_data.sort(key=lambda x: x['empleado__obra__nombre'])
+    
 
     data = []
     for key, group in groupby(response_data, key=lambda x: x['empleado__obra__nombre']):
@@ -574,5 +580,51 @@ def tabla_pagos(request):
 
 
     return JsonResponse({'data': response_data, 'pago_obra':data}, safe=False)
+
+
+#RH
+@login_required
+def progreso(request):
+    hoy = now()
+    user = request.user.userprofile
+    data = []
+
+    if user.role == RH_ROLE:
+        obra = user.obra_id
+        obra = Obra.objects.get(id=obra)
+
+        total = (obra.fecha_fin - obra.fecha_inicio).days
+        transcurrido = (hoy.date() - obra.fecha_inicio).days
+        if transcurrido > 0:
+            porcenaje = (transcurrido / total) * 100 if total else 0
+            resto = 100 - abs(porcenaje)
+            porcenaje = round(porcenaje, 2)
+            resto = round(resto, 2)
+            data.append({
+                    'obra_nombre': obra.nombre,
+                    'porcentaje': porcenaje,
+                    'restante': resto
+                })
+    return JsonResponse({'data':data}, safe=False)     
+
+@login_required
+def empleados_rh(request):
+    user = request.user.userprofile
+    data = []
+
+    if user.role == RH_ROLE:
+        obra = user.obra_id
+        empleados = Empleado.objects.filter(obra=obra)
+        for empleado in empleados:
+            data.append({
+                'nombre': empleado.nombre,
+                'apellido': empleado.apellido,
+                'puesto': empleado.puesto.nombre,
+                'sueldo': empleado.sueldo
+            })
+
+    return JsonResponse({'data': data}, safe=False)
+
+    
 
 
