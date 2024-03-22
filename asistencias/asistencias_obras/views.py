@@ -1,3 +1,4 @@
+from itertools import groupby
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import Group
 from .roles import ADMIN_ROLE, RH_ROLE, USER_ROLE
@@ -23,7 +24,7 @@ from django.core.serializers import serialize
 from django.db.models.functions import Coalesce
 from django.db.models import ExpressionWrapper, F, FloatField
 from django.db.models.functions import Cast
-from django.db.models import Count, Case, When, Q
+from django.db.models import Count, Case, When, DecimalField
 from django.utils.timezone import now
 
 
@@ -454,11 +455,14 @@ def progreso_obras(request):
         tiempo_total = (objeto.fecha_fin - objeto.fecha_inicio).days
         tiempo_transcurrido = (hoy.date() - objeto.fecha_inicio).days 
         
-        porcentaje_transcurrido = (tiempo_transcurrido / tiempo_total) * 100 if tiempo_total else 0
-        porcentaje_transcurrido
+        if tiempo_transcurrido > 0:
+        
+            porcentaje_transcurrido = (tiempo_transcurrido / tiempo_total) * 100 if tiempo_total else 0
+            porcentaje_transcurrido
 
-        labels.append(objeto.nombre)  # Agrega el nombre de la obra a la lista de etiquetas
-        data.append(abs(int(porcentaje_transcurrido))) # Agrega el porcentaje de progreso a la lista de datos
+            labels.append(objeto.nombre)  # Agrega el nombre de la obra a la lista de etiquetas
+            data.append(abs(int(porcentaje_transcurrido))) # Agrega el porcentaje de progreso a la lista de datos
+        
 
     return JsonResponse({'labels': labels, 'data': data})
 
@@ -532,4 +536,42 @@ def progreso_obras_indivual(request):
 
 @login_required
 def tabla_pagos(request):
-    ...
+  # Parámetros para determinar el rango de tiempo (semana o mes)
+    time_range = request.GET.get('time_range', 'weekly')
+
+    today = timezone.now().date()
+    if time_range == 'weekly':
+        start_date = today - timezone.timedelta(days=today.weekday())
+        end_date = start_date + timezone.timedelta(days=6)
+    else:  # 'monthly'
+        start_date = today.replace(day=1)
+        end_date = (today.replace(day=1) + timezone.timedelta(days=31)).replace(day=1) - timezone.timedelta(days=1)
+
+    # Filtrar asistencias válidas
+    valid_attendances = Asistencia.objects.filter(
+        fecha__range=(start_date, end_date),
+        entrada__isnull=False,
+        salida__isnull=False
+    ).values('empleado', 'empleado__nombre', 'empleado__obra__nombre', 'empleado__puesto__sueldo_base')
+
+    # Agregar conteo de asistencias válidas y calcular el pago
+    payment_data = valid_attendances.annotate(
+        days_worked=Count('fecha'),
+        total_payment=Coalesce(F('days_worked') * F('empleado__puesto__sueldo_base'), 0, output_field=DecimalField())
+    ).order_by('empleado')
+
+    # Preparar la respuesta
+    response_data = list(payment_data.values('empleado__nombre', 'empleado__obra__nombre', 'days_worked', 'total_payment'))
+
+    response_data.sort(key=lambda x: x['empleado__obra__nombre'])
+
+    data = []
+    for key, group in groupby(response_data, key=lambda x: x['empleado__obra__nombre']):
+        pagos = sum(d['total_payment'] for d in group)
+
+        data.append({'obra': key, 'total_pago': pagos})
+
+
+    return JsonResponse({'data': response_data, 'pago_obra':data}, safe=False)
+
+
