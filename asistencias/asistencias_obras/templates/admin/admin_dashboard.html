@@ -84,6 +84,21 @@
       </div>
   </div>
   <div class="bg-white p-4 mt-4">
+    <div class="p-4 bg-white shadow-md rounded-lg">  
+
+ 
+      <div class="btn-group" role="group" aria-label="Basic example">
+        <button type="button" class="btn btn-outline-dark" id="asistenciaSemanal">Asistencias Semanales</button>
+        <button type="button" class="btn btn-outline-dark" id="asistenciaMensual">Asistencias Mensuales</button>
+        <button  type="button" class="btn btn-outline-dark" id="asistenciaConjunto">Cargar Datos</button>
+    
+        <label for="semanasDropdown" class="">Número de Semanas:</label>
+        <select id="semanasAsistencia">
+            <option value="2">2 Semana</option>
+            <option value="3">3 Semanas</option>
+        </select>
+    
+      </div>
       <p class="text-xl pb-3 flex items-center">
           <i class="fas fa-check mr-3"></i> Asistencia de empleados
       </p>
@@ -109,9 +124,17 @@
   <div class="btn-group" role="group" aria-label="Basic example">
     <button type="button" class="btn btn-outline-dark" id="cargarSemanal">Pagos Semanales</button>
     <button type="button" class="btn btn-outline-dark" id="cargarMensual">Pagos Mensuales</button>
+    <button  type="button" class="btn btn-outline-dark" id="cargarConjunto">Cargar Datos</button>
+
+    <label for="semanasDropdown" class="">Número de Semanas:</label>
+    <select id="semanasDropdown">
+        <option value="2">2 Semana</option>
+        <option value="3">3 Semanas</option>
+    </select>
+
   </div>
   <table id="tablaPagosEmpleados" class="table table-striped">
-    <thead class="bg-gray-800 text-white">
+    <thead class="bg-black-800 text-white">
         <tr>
           <th class="w-1/3 text-left py-3 px-4 uppercase font-semibold text-sm">Empleado</th>
           <th class="w-1/3 text-left py-3 px-4 uppercase font-semibold text-sm">Obra</th>
@@ -205,21 +228,19 @@
 
 
 <script>
-new DataTable('#tablaPagosEmpleados');
-new DataTable('#tablaPagosObra');
-new DataTable('#tablaObras');
+
 
 $(document).ready(function() {
-    // Función para cargar los datos
-    function cargarDatos(timeRange) {
+    // Función para cargar los datos, ahora aceptando un segundo parámetro para conjunto
+    function cargarDatos(timeRange, conjunto = 1) { // Asume un valor por defecto de 1 si no se proporciona
         $.ajax({
             url: '/ajax/tabla_pagos/', // Url del endpoint
             data: {
-                'time_range': timeRange
+                'time_range': timeRange,
+                'conjunto': conjunto  // Añade el parámetro conjunto a los datos enviados
             },
             dataType: 'json',
             success: function(response) {
-                console.log(response);
                 var data = response.data;
                 var tabla = $("#tablaPagosEmpleados tbody");
 
@@ -228,27 +249,26 @@ $(document).ready(function() {
                         '<td>' + item.empleado__nombre + '</td>' +
                         '<td>' + item.empleado__obra__nombre + '</td>' +
                         '<td>' + item.days_worked + '</td>' +
-                        '<td>' + item.total_payment + '</td>' +
+                        '<td>' + parseFloat(item.total_payment).toFixed(2) + '</td>' +
                         '</tr>';
                     tabla.append(fila);
                 });
 
                 var pagos = response.pago_obra;
-                var tabla = $("#tablaPagosObra tbody");
+                var tablaObra = $("#tablaPagosObra tbody");
 
                 $.each(pagos, function(i, item) {
                     var fila = '<tr>' +
                         '<td>' + item.obra + '</td>' +
-                        '<td>' + item.total_pago + '</td>' +
+                        '<td>' + parseFloat(item.total_pago).toFixed(2) + '</td>' +
                         '</tr>';
-                    tabla.append(fila);
+                    tablaObra.append(fila);
                 });
 
             },
             error: function() {
                 alert("Error al cargar los datos.");
             }
-
         });
     }
 
@@ -265,6 +285,16 @@ $(document).ready(function() {
         $('#tablaPagosObra tbody').empty();
         cargarDatos('monthly');
     });
+
+    // Evento de clic para cargar conjuntos de datos basados en el número de semanas o meses
+    $('#cargarConjunto').click(function() {
+        $('#tablaPagosEmpleados tbody').empty();
+        $('#tablaPagosObra tbody').empty();
+        var conjunto = $('#semanasDropdown').val(); // Asume que tienes un elemento con ID 'semanasDropdown' para seleccionar el número de semanas/meses
+        cargarDatos($('#timeRangeDropdown').val(), conjunto); // Asume que tienes otro dropdown para seleccionar el rango de tiempo con ID 'timeRangeDropdown'
+    });
+
+    // Ejemplo de activación automática para cargar datos semanales al iniciar
     $('#cargarSemanal').click();
 });
 
@@ -382,22 +412,49 @@ $(document).ready(function() {
       },
     });
   });
-  $(document).ready(function () {
-    $.ajax({
-      url: "/ajax/asistencia_obras/",
-      method: "GET",
-      success: function (respuesta) {
-        var etiquetas = respuesta.obras.map(function (obra) {
-          return obra.obra_nombre;
-        });
-        var datos = respuesta.obras.map(function (obra) {
-          return obra.porcentaje_asistencia;
-        });
 
-        crearGraficaDeRadar(etiquetas, datos, "asistencia");
-      },
+
+  $(document).ready(function () {
+    // Cargar datos semanalmente
+    $('#asistenciaSemanal').click(function() {
+        cargarDatos('weekly', 1); // Carga datos para 1 semana
     });
-  });
+
+    // Cargar datos mensualmente
+    $('#asistenciaMensual').click(function() {
+        cargarDatos('monthly', 1); // Carga datos para 1 mes
+    });
+
+    // Cargar datos para un conjunto personalizado de semanas/meses
+    $('#asistenciaConjunto').click(function() {
+        var conjunto = $('#conjuntoDropdown').val(); // Obtiene el conjunto seleccionado
+        cargarDatos('custom', conjunto); // Carga datos para el conjunto seleccionado. Asegúrate que tu backend maneje 'custom'
+    });
+
+    function cargarDatos(timeRange, conjunto) {
+        $.ajax({
+            url: "/ajax/asistencia_obras/",
+            method: "GET",
+            data: {
+                'time_range': timeRange,
+                'conjunto': conjunto
+            },
+            success: function (respuesta) {
+                var etiquetas = respuesta.obras.map(function (obra) {
+                    return obra.obra_nombre;
+                });
+                var datos = respuesta.obras.map(function (obra) {
+                    return obra.porcentaje_asistencia;
+                });
+
+                crearGraficaDeRadar(etiquetas, datos, "asistencia");
+            },
+            error: function() {
+                alert("Error al cargar los datos.");
+            }
+        });
+    }
+});
 
   function crearGrafica(etiquetas, datos, type, nombre) {
     var ctx = document.getElementById(nombre).getContext("2d");
@@ -745,5 +802,7 @@ $(document).ready(function() {
       })
       .catch((error) => console.error("Error:", error));
   }
+
+
 </script>
 {% endblock %}

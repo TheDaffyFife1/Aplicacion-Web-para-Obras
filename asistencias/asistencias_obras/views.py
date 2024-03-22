@@ -468,8 +468,24 @@ def progreso_obras(request):
 
 @login_required
 def asistencia_obras(request):
-    # Asumiendo que tienes un campo que identifica cada día único de asistencia, por ejemplo 'fecha'
-    obras_con_asistencias = Obra.objects.annotate(
+    # Obtener parámetros de la solicitud
+    time_range = request.GET.get('time_range', 'weekly')
+    conjunto = int(request.GET.get('conjunto', 1))
+
+    today = timezone.now().date()
+
+    if time_range == 'weekly':
+        start_date = today - timedelta(days=today.weekday(), weeks=(conjunto - 1) * 7)
+        end_date = start_date + timedelta(days=6 + (conjunto - 1) * 7)
+    elif time_range == 'monthly':
+        # Ajusta el rango al mes actual y va hacia atrás según el conjunto indicado
+        start_date = today.replace(day=1) - timedelta(days=31 * (conjunto - 1))
+        end_date = today
+
+    # Filtrar asistencias dentro del rango de fechas
+    obras_con_asistencias = Obra.objects.filter(
+        empleado__asistencia__fecha__range=(start_date, end_date)
+    ).annotate(
         total_asistencias=Count('empleado__asistencia', distinct=True),
         total_empleados=Count('empleado', distinct=True)
     )
@@ -477,9 +493,9 @@ def asistencia_obras(request):
     # Calcular el porcentaje de asistencias por obra
     obras_data = []
     for obra in obras_con_asistencias:
-        # Asumiendo que cada empleado debería haber asistido cada día
-        dias_laborales = obra.total_asistencias / obra.total_empleados if obra.total_empleados else 0
-        porcentaje = (obra.total_asistencias / (obra.total_empleados * dias_laborales) * 100) if dias_laborales else 0
+        # Asumiendo que cada empleado debería haber asistido cada día de trabajo
+        dias_laborales = (end_date - start_date).days + 1
+        porcentaje = (obra.total_asistencias / (obra.total_empleados * dias_laborales) * 100) if obra.total_empleados else 0
         obras_data.append({
             'obra_nombre': obra.nombre,
             'porcentaje_asistencia': porcentaje
@@ -536,19 +552,24 @@ def progreso_obras_indivual(request):
     return JsonResponse({'labels': labels, 'data': data, 'resto': resto})
 
 @login_required
+
 def tabla_pagos(request):
-  # Parámetros para determinar el rango de tiempo (semana o mes)
+    # Parámetros para determinar el rango de tiempo y el conjunto de semanas/meses
     time_range = request.GET.get('time_range', 'weekly')
+    conjunto = int(request.GET.get('conjunto', 1))  # El número de semanas/meses a considerar
 
     today = timezone.now().date()
     if time_range == 'weekly':
-        start_date = today - timezone.timedelta(days=today.weekday())
-        end_date = start_date + timezone.timedelta(days=6)
-    else:  # 'monthly'
-        start_date = today.replace(day=1)
-        end_date = (today.replace(day=1) + timezone.timedelta(days=31)).replace(day=1) - timezone.timedelta(days=1)
+        # Ajustar el rango de fechas para abarcar el conjunto de semanas especificado
+        start_date = today - timezone.timedelta(days=today.weekday(), weeks=(conjunto - 1) * 7)
+        end_date = start_date + timezone.timedelta(days=6 + (conjunto - 1) * 7)
+    else:  # Si es 'monthly', ajustar según el número de meses especificado
+        # Establecer el inicio al primer día del mes actual y retroceder los meses necesarios
+        start_date = today.replace(day=1) - timezone.timedelta(days=31)
+        # Ajustar para que el final del periodo sea el último día del mes actual
+        end_date = today.replace(day=1) + timezone.timedelta(days=31) - timezone.timedelta(days=today.day)
 
-    # Filtrar asistencias válidas
+    # Filtrar asistencias válidas en el rango de fechas ajustado
     valid_attendances = Asistencia.objects.filter(
         fecha__range=(start_date, end_date),
         entrada__isnull=False,
@@ -564,22 +585,17 @@ def tabla_pagos(request):
         )
     ).order_by('empleado')
 
-    
-
     # Preparar la respuesta
     response_data = list(payment_data.values('empleado__nombre', 'empleado__obra__nombre', 'days_worked', 'total_payment'))
-
     response_data.sort(key=lambda x: x['empleado__obra__nombre'])
     
-
     data = []
     for key, group in groupby(response_data, key=lambda x: x['empleado__obra__nombre']):
         pagos = sum(d['total_payment'] for d in group)
-
         data.append({'obra': key, 'total_pago': pagos})
 
+    return JsonResponse({'data': response_data, 'pago_obra': data}, safe=False)
 
-    return JsonResponse({'data': response_data, 'pago_obra':data}, safe=False)
 
 
 #RH
