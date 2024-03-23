@@ -1,3 +1,4 @@
+from calendar import monthrange
 from itertools import groupby
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import Group
@@ -232,13 +233,13 @@ def project_progress(request):
     current_date = timezone.now().date()
 
     progress_data = Obra.objects.filter(activa=True).annotate(
-        total_days=Cast((F('fecha_fin') - F('fecha_inicio')), output_field=FloatField()),
-        elapsed_days=Cast((current_date - F('fecha_inicio')), output_field=FloatField()),
-        progress=ExpressionWrapper(
-            Coalesce(100 * F('elapsed_days') / F('total_days'), 0),
-            output_field=FloatField()
-        )
-    ).values('nombre', 'progress')
+    total_days=Cast((F('fecha_fin') - F('fecha_inicio')), output_field=FloatField()),
+    elapsed_days=Cast((current_date - F('fecha_inicio')), output_field=FloatField()),
+    progress=ExpressionWrapper(
+        Coalesce(100 * F('elapsed_days') / F('total_days'), 0),
+        output_field=FloatField()
+    )
+).filter(progress__gt=0).values('nombre', 'progress')  # Filtra para incluir solo progresos mayores a 0
     
     return JsonResponse(list(progress_data), safe=False)
 
@@ -467,21 +468,33 @@ def progreso_obras(request):
     return JsonResponse({'labels': labels, 'data': data})
 
 @login_required
+
 def asistencia_obras(request):
-    # Obtener parámetros de la solicitud
     time_range = request.GET.get('time_range', 'weekly')
     conjunto = int(request.GET.get('conjunto', 1))
 
     today = timezone.now().date()
 
-    if time_range == 'weekly':
-        start_date = today - timedelta(days=today.weekday(), weeks=(conjunto - 1) * 7)
-        end_date = start_date + timedelta(days=6 + (conjunto - 1) * 7)
-    elif time_range == 'monthly':
-        # Ajusta el rango al mes actual y va hacia atrás según el conjunto indicado
-        start_date = today.replace(day=1) - timedelta(days=31)
-        end_date = today
+    # Inicializa start_date y end_date a None
+    start_date = None
+    end_date = None
 
+    if time_range == 'weekly':
+        start_date = today - timedelta(days=today.weekday(), weeks=(conjunto - 1))
+        end_date = start_date + timedelta(days=6)
+    elif time_range == 'monthly':
+        start_date = today.replace(day=1) - timedelta(days=31 * (conjunto - 1))
+        end_date = today
+    elif time_range == 'custom':
+        start_date = today - timedelta(days=today.weekday(), weeks=(conjunto - 1))
+        end_date = start_date + timedelta(days=6)
+    else:
+        # Opción para manejar un valor no esperado en time_range
+        return JsonResponse({'error': 'El rango de tiempo especificado no es válido.'}, status=400)
+    
+    if start_date is None or end_date is None:
+        # Asegurarse de que start_date y end_date estén definidos
+        return JsonResponse({'error': 'Las fechas de inicio y fin no están definidas.'}, status=500)
     # Filtrar asistencias dentro del rango de fechas
     obras_con_asistencias = Obra.objects.filter(
         empleado__asistencia__fecha__range=(start_date, end_date)
@@ -554,47 +567,76 @@ def progreso_obras_indivual(request):
 @login_required
 
 def tabla_pagos(request):
-    # Parámetros para determinar el rango de tiempo y el conjunto de semanas/meses
     time_range = request.GET.get('time_range', 'weekly')
-    conjunto = int(request.GET.get('conjunto', 1))  # El número de semanas/meses a considerar
+    conjunto = int(request.GET.get('conjunto', 1))
 
     today = timezone.now().date()
-    if time_range == 'weekly':
-        # Ajustar el rango de fechas para abarcar el conjunto de semanas especificado
-        start_date = today - timezone.timedelta(days=today.weekday(), weeks=(conjunto - 1) * 7)
-        end_date = start_date + timezone.timedelta(days=6 + (conjunto - 1) * 7)
-    else:  # Si es 'monthly', ajustar según el número de meses especificado
-        # Establecer el inicio al primer día del mes actual y retroceder los meses necesarios
-        start_date = today.replace(day=1) - timezone.timedelta(days=31)
-        # Ajustar para que el final del periodo sea el último día del mes actual
-        end_date = today.replace(day=1) + timezone.timedelta(days=31) - timezone.timedelta(days=today.day)
 
-    # Filtrar asistencias válidas en el rango de fechas ajustado
+    if time_range == 'weekly':
+        start_date = today - timedelta(weeks=conjunto, days=today.weekday())
+        end_date = start_date + timedelta(weeks=conjunto, days=6 - today.weekday())
+    elif time_range == 'monthly':
+        # Retroceder meses basado en el valor de `conjunto` y luego encontrar el inicio y final de ese mes
+        month_first_day = today.replace(day=1) - timedelta(days=31 * (conjunto - 1))
+        last_day = monthrange(month_first_day.year, month_first_day.month)[1]
+        start_date = month_first_day
+        end_date = month_first_day.replace(day=last_day)
+    else:
+        return JsonResponse({'error': 'Rango de tiempo no válido.'}, status=400)
+
     valid_attendances = Asistencia.objects.filter(
         fecha__range=(start_date, end_date),
         entrada__isnull=False,
         salida__isnull=False
-    ).values('empleado', 'empleado__nombre', 'empleado__obra__nombre', 'empleado__puesto__sueldo_base')
-
-    # Agregar conteo de asistencias válidas y calcular el pago
-    payment_data = valid_attendances.annotate(
+    ).annotate(
         days_worked=Count('fecha'),
         total_payment=ExpressionWrapper(
-            Coalesce(F('days_worked') * (F('empleado__puesto__sueldo_base')/6), 0),
+            Coalesce(F('days_worked') * (F('empleado__puesto__sueldo_base') / 6), 0),
             output_field=DecimalField(max_digits=10, decimal_places=2)
         )
     ).order_by('empleado')
 
-    # Preparar la respuesta
-    response_data = list(payment_data.values('empleado__nombre', 'empleado__obra__nombre', 'days_worked', 'total_payment'))
-    response_data.sort(key=lambda x: x['empleado__obra__nombre'])
+    response_data = list(valid_attendances.values('empleado__nombre', 'empleado__obra__nombre', 'days_worked', 'total_payment'))
+    
+    pago_empleado = []
+    for key, group in groupby(response_data, key=lambda x: x['empleado__nombre']):
+        pagos = sum(d['total_payment'] for d in group)
+        pago_empleado.append({'empleado': key, 'total_pago': pagos})
+    
+    dias = []
+    for key, group in groupby(response_data, key=lambda x: x['empleado__nombre']):
+        dias_trabajados = sum(d['days_worked'] for d in group)
+        dias.append({'empleado': key, 'dias_trabajados': dias_trabajados})
+    
+    obra = []
+    for key, group in groupby(response_data, key=lambda x: x['empleado__nombre']):
+        obra_trabajada = set(d['empleado__obra__nombre'] for d in group)
+        obra.append({'empleado': key, 'obra': obra_trabajada})
+
+    unificados = []
+    for pago in pago_empleado:
+        empleado_info = pago.copy()  # Hacer una copia para mantener los datos originales intactos
+        # Buscar y añadir información de 'dias'
+        dias_info = next((item for item in dias if item['empleado'] == empleado_info['empleado']), None)
+        if dias_info:
+            empleado_info.update(dias_trabajados=dias_info['dias_trabajados'])
+        
+        # Buscar y añadir información de 'obra'
+        obra_info = next((item for item in obra if item['empleado'] == empleado_info['empleado']), None)
+        if obra_info:
+            # Convertir el set a una lista para compatibilidad
+            empleado_info.update(obra=list(obra_info['obra']))
+        
+        unificados.append(empleado_info)
+
     
     data = []
     for key, group in groupby(response_data, key=lambda x: x['empleado__obra__nombre']):
         pagos = sum(d['total_payment'] for d in group)
         data.append({'obra': key, 'total_pago': pagos})
+    print(unificados)
 
-    return JsonResponse({'data': response_data, 'pago_obra': data}, safe=False)
+    return JsonResponse({'data': unificados, 'pago_obra': data}, safe=False)
 
 
 

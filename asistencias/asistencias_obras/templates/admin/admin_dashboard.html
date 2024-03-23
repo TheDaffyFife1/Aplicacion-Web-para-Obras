@@ -92,10 +92,10 @@
         <button type="button" class="btn btn-outline-dark" id="asistenciaMensual">Asistencias Mensuales</button>
         <button  type="button" class="btn btn-outline-dark" id="asistenciaConjunto">Cargar Datos</button>
     
-        <label for="semanasDropdown" class="">Número de Semanas:</label>
-        <select id="semanasAsistencia">
-            <option value="2">2 Semana</option>
-            <option value="3">3 Semanas</option>
+        <select class="form-select" id="semanasAsistencia" aria-label=".form-select-sm example">
+            <option selected>Número de Semanas</option>
+            <option value="3">2 Semana</option>
+            <option value="4">3 Semanas</option>
         </select>
     
       </div>
@@ -126,10 +126,10 @@
     <button type="button" class="btn btn-outline-dark" id="cargarMensual">Pagos Mensuales</button>
     <button  type="button" class="btn btn-outline-dark" id="cargarConjunto">Cargar Datos</button>
 
-    <label for="semanasDropdown" class="">Número de Semanas:</label>
-    <select id="semanasDropdown">
-        <option value="2">2 Semana</option>
-        <option value="3">3 Semanas</option>
+    <select class="form-select form-select-sm" id="semanasDropdown" aria-label=".form-select-sm example">
+        <option selected>Número de Semanas</option>
+        <option value="3">2 Semana</option>
+        <option value="4">3 Semanas</option>
     </select>
 
   </div>
@@ -246,10 +246,10 @@ $(document).ready(function() {
 
                 $.each(data, function(i, item) {
                     var fila = '<tr>' +
-                        '<td>' + item.empleado__nombre + '</td>' +
-                        '<td>' + item.empleado__obra__nombre + '</td>' +
-                        '<td>' + item.days_worked + '</td>' +
-                        '<td>' + parseFloat(item.total_payment).toFixed(2) + '</td>' +
+                        '<td>' + item.empleado + '</td>' +
+                        '<td>' + item.obra + '</td>' +
+                        '<td>' + item.dias_trabajados + '</td>' +
+                        '<td>' + parseFloat(item.total_pago).toFixed(2) + '</td>' +
                         '</tr>';
                     tabla.append(fila);
                 });
@@ -291,7 +291,7 @@ $(document).ready(function() {
         $('#tablaPagosEmpleados tbody').empty();
         $('#tablaPagosObra tbody').empty();
         var conjunto = $('#semanasDropdown').val(); // Asume que tienes un elemento con ID 'semanasDropdown' para seleccionar el número de semanas/meses
-        cargarDatos($('#timeRangeDropdown').val(), conjunto); // Asume que tienes otro dropdown para seleccionar el rango de tiempo con ID 'timeRangeDropdown'
+        cargarDatos('weekly', conjunto); // Carga datos para el conjunto seleccionado
     });
 
     // Ejemplo de activación automática para cargar datos semanales al iniciar
@@ -427,10 +427,12 @@ $(document).ready(function() {
 
     // Cargar datos para un conjunto personalizado de semanas/meses
     $('#asistenciaConjunto').click(function() {
-        var conjunto = $('#conjuntoDropdown').val(); // Obtiene el conjunto seleccionado
-        cargarDatos('custom', conjunto); // Carga datos para el conjunto seleccionado. Asegúrate que tu backend maneje 'custom'
+        var conjunto = $('#semanasAsistencia').val(); // Obtiene el conjunto seleccionado
+        cargarDatos('weekly', conjunto); // Carga datos para el conjunto seleccionado
     });
     $('#asistenciaSemanal').click();
+
+
 
     function cargarDatos(timeRange, conjunto) {
         $.ajax({
