@@ -46,10 +46,43 @@
         border-radius: 5px; /* esquinas redondeadas para cada elemento de la grilla */
                             
     }
+    .navbar {
+    background-color: #333;
+    position: fixed; /* Set the navbar to fixed position */
+    top: 0; /* Position the navbar at the top of the page */
+    width: 100%; /* Full width */
+}
    
 
     </style>
+<nav class="navbar navbar-expand-lg bg-white rounded-lg" id="navbar">
+  <div class="container-fluid">
+    <button class="navbar-toggler " type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link" aria-current="page"  data-value="weekly">Semanal</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-value="monthly">Mensual</a>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Conjunto de Semanas 
+          </a>
+          <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+            <li><a class="dropdown-item" data-value="3">2 Semanas</a></li>
+            <li><a class="dropdown-item" data-value="4">3 Semanas</a></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
 </head>
+
 <div>
 <h1 class="text-3xl text-black pb-6">Dashboard</h1>
 <div class="max-w-full px-6 py-6 mx-auto" id="summary-info"></div>
@@ -87,18 +120,7 @@
     <div class="p-4 bg-white shadow-md rounded-lg">  
 
  
-      <div class="btn-group" role="group" aria-label="Basic example">
-        <button type="button" class="btn btn-outline-dark" id="asistenciaSemanal">Asistencias Semanales</button>
-        <button type="button" class="btn btn-outline-dark" id="asistenciaMensual">Asistencias Mensuales</button>
-        <button  type="button" class="btn btn-outline-dark" id="asistenciaConjunto">Cargar Datos</button>
-    
-        <select class="form-select" id="semanasAsistencia" aria-label=".form-select-sm example">
-            <option value="2" selected>Número de Semanas</option>
-            <option value="3">2 Semana</option>
-            <option value="4">3 Semanas</option>
-        </select>
-    
-      </div>
+ 
       <p class="text-xl pb-3 flex items-center">
           <i class="fas fa-check mr-3"></i> Asistencia de empleados
       </p>
@@ -120,19 +142,7 @@
 
 <div class="p-4 bg-white shadow-md rounded-lg">  
 
- 
-  <div class="btn-group" role="group" aria-label="Basic example">
-    <button type="button" class="btn btn-outline-dark" id="cargarSemanal">Pagos Semanales</button>
-    <button type="button" class="btn btn-outline-dark" id="cargarMensual">Pagos Mensuales</button>
-    <button  type="button" class="btn btn-outline-dark" id="cargarConjunto">Cargar Datos</button>
 
-    <select class="form-select form-select-sm" id="semanasDropdown" aria-label=".form-select-sm example">
-        <option value="2" selected>Número de Semanas</option>
-        <option value="3">2 Semana</option>
-        <option value="4">3 Semanas</option>
-    </select>
-
-  </div>
   <table id="tablaPagosEmpleados" class="table table-striped">
     <thead class="bg-black-800 text-white">
         <tr>
@@ -228,19 +238,23 @@
 
 
 <script>
-
+let asistencia;
 
 $(document).ready(function() {
-    // Función para cargar los datos, ahora aceptando un segundo parámetro para conjunto
-    function cargarDatos(timeRange, conjunto = 1) { // Asume un valor por defecto de 1 si no se proporciona
+    function cargarDatos(timeRange, conjunto = 1) {
+        // Limpia las tablas antes de cargar nuevos datos
+
+
         $.ajax({
-            url: '/ajax/tabla_pagos/', // Url del endpoint
+            url: '/ajax/tabla_pagos/',
             data: {
                 'time_range': timeRange,
-                'conjunto': conjunto  // Añade el parámetro conjunto a los datos enviados
+                'conjunto': conjunto
             },
             dataType: 'json',
             success: function(response) {
+                $('#tablaPagosEmpleados tbody').empty();
+                $('#tablaPagosObra tbody').empty();
                 var data = response.data;
                 var tabla = $("#tablaPagosEmpleados tbody");
 
@@ -264,7 +278,6 @@ $(document).ready(function() {
                         '</tr>';
                     tablaObra.append(fila);
                 });
-
             },
             error: function() {
                 alert("Error al cargar los datos.");
@@ -272,30 +285,26 @@ $(document).ready(function() {
         });
     }
 
-    // Evento de clic para cargar pagos semanales
-    $('#cargarSemanal').click(function() {
-        $('#tablaPagosEmpleados tbody').empty();
-        $('#tablaPagosObra tbody').empty();
-        cargarDatos('weekly');
+    // Manejar clics en los enlaces de la navbar para seleccionar el rango de tiempo
+    $('.nav-link').click(function() {
+
+        const timeRange = $(this).data('value') || 'weekly'; // Valor por defecto semanal
+        let conjunto = 1; // Valor por defecto para el conjunto
+
+
+        cargarDatos(timeRange, conjunto);
     });
 
-    // Evento de clic para cargar pagos mensuales
-    $('#cargarMensual').click(function() {
-        $('#tablaPagosEmpleados tbody').empty();
-        $('#tablaPagosObra tbody').empty();
-        cargarDatos('monthly');
+    // Manejar selección de rango específico de semanas desde el dropdown
+    $('.dropdown-item').click(function() {
+
+        const conjunto = $(this).data('value');
+        cargarDatos('range', conjunto);
     });
 
-    // Evento de clic para cargar conjuntos de datos basados en el número de semanas o meses
-    $('#cargarConjunto').click(function() {
-        $('#tablaPagosEmpleados tbody').empty();
-        $('#tablaPagosObra tbody').empty();
-        var conjunto = $('#semanasDropdown').val(); // Asume que tienes un elemento con ID 'semanasDropdown' para seleccionar el número de semanas/meses
-        cargarDatos('weekly', conjunto); // Carga datos para el conjunto seleccionado
-    });
+    $('#navbar .nav-link[data-value="weekly"]').click();
 
-    // Ejemplo de activación automática para cargar datos semanales al iniciar
-    $('#cargarSemanal').click();
+
 });
 
 
@@ -414,50 +423,100 @@ $(document).ready(function() {
   });
 
 
-  $(document).ready(function () {
-    // Cargar datos semanalmente
-    $('#asistenciaSemanal').click(function() {
-        cargarDatos('weekly', 1); // Carga datos para 1 semana
+  $(document).ready(function() {
+    // Manejar clics en los enlaces de navegación para selección semanal y mensual
+    $('#navbar .nav-link[data-value]').click(function(e) {
+        e.preventDefault(); // Prevenir la acción por defecto
+        const value = $(this).data('value');
+        
+        // Llama a cargarDatosAsistencia según el valor de data-value
+        cargarDatosAsistencia(value, null); // No hay 'conjunto' para semanal o mensual
     });
 
-    // Cargar datos mensualmente
-    $('#asistenciaMensual').click(function() {
-        cargarDatos('monthly', 1); // Carga datos para 1 mes
+    // Manejar selección específica del dropdown de "Conjunto de Semanas"
+    $('#navbar .dropdown-item').click(function(e) {
+        e.preventDefault(); // Prevenir la acción por defecto del enlace
+        const value = $(this).data('value');
+
+        // Aquí se asume que 'range' indica un conjunto de semanas y 'value' es el número de semanas
+        cargarDatosAsistencia('range', value);
     });
 
-    // Cargar datos para un conjunto personalizado de semanas/meses
-    $('#asistenciaConjunto').click(function() {
-        var conjunto = $('#semanasAsistencia').val(); // Obtiene el conjunto seleccionado
-        cargarDatos('weekly', conjunto); // Carga datos para el conjunto seleccionado
-    });
-    $('#asistenciaSemanal').click();
+    var miGraficoDeRadar; // Variable global para mantener la instancia del gráfico
 
+function cargarDatosAsistencia(timeRange, conjunto) {
+    $.ajax({
+        url: "/ajax/asistencia_obras/",
+        method: "GET",
+        data: {
+            'time_range': timeRange,
+            'conjunto': conjunto
+        },
+        success: function(respuesta) {
+            var etiquetas = respuesta.obras.map(obra => obra.obra_nombre);
+            var datos = respuesta.obras.map(obra => obra.porcentaje_asistencia);
 
+            // Configuración para el gráfico de radar
+            var configuracion = {
+                type: 'radar',
+                data: {
+                    labels: etiquetas,
+                    datasets: [{
+                        label: 'Asistencia %',
+                        data: datos,
+                        fill: true,
+                        backgroundColor: [
+                          "rgba(255, 99, 132, 0.2)",
+                          "rgba(54, 162, 235, 0.2)",
+                          "rgba(255, 206, 86, 0.2)",
+                          "rgba(75, 192, 192, 0.2)",
+                          "rgba(153, 102, 255, 0.2)",
+                          "rgba(255, 159, 64, 0.2)",
+                        ],
+                        borderColor: [
+                          "rgba(255, 99, 132, 1)",
+                          "rgba(54, 162, 235, 1)",
+                          "rgba(255, 206, 86, 1)",
+                          "rgba(75, 192, 192, 1)",
+                          "rgba(153, 102, 255, 1)",
+                          "rgba(255, 159, 64, 1)",
+                        ],
+                        pointBackgroundColor: "rgb(255, 99, 132)",
+                        pointBorderColor: "#fff",
+                        pointHoverBackgroundColor: "#fff",
+                        pointHoverBorderColor: "rgb(255, 99, 132)",
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    elements: {
+                        line: {
+                            borderWidth: 3
+                        }
+                    }
+                }
+            };
 
-    function cargarDatos(timeRange, conjunto) {
-        $.ajax({
-            url: "/ajax/asistencia_obras/",
-            method: "GET",
-            data: {
-                'time_range': timeRange,
-                'conjunto': conjunto
-            },
-            success: function (respuesta) {
-                var etiquetas = respuesta.obras.map(function (obra) {
-                    return obra.obra_nombre;
-                });
-                var datos = respuesta.obras.map(function (obra) {
-                    return obra.porcentaje_asistencia;
-                });
-
-                crearGraficaDeRadar(etiquetas, datos, "asistencia");
-            },
-            error: function() {
-                alert("Error al cargar los datos.");
+            // Destruir el gráfico anterior si existe
+            if (miGraficoDeRadar) {
+                miGraficoDeRadar.destroy();
             }
-        });
-    }
+
+            // Crear un nuevo gráfico de radar
+            var ctx = document.getElementById('asistencia').getContext('2d');
+            miGraficoDeRadar = new Chart(ctx, configuracion);
+        },
+        error: function() {
+            alert("Error al cargar los datos.");
+        }
+    });
+}
+
+    // Activa por defecto la selección semanal al cargar la página
+    $('#navbar .nav-link[data-value="weekly"]').click();
 });
+
 
   function crearGrafica(etiquetas, datos, type, nombre) {
     var ctx = document.getElementById(nombre).getContext("2d");
@@ -541,51 +600,6 @@ $(document).ready(function() {
       plugins: {
         legend: {
           position: "top",
-        },
-      },
-    });
-  }
-  function crearGraficaDeRadar(etiquetas, datos, nombre) {
-    var ctx = document.getElementById(nombre).getContext("2d");
-    var miGraficaDeRadar = new Chart(ctx, {
-      type: "radar",
-      data: {
-        labels: etiquetas, // Las etiquetas son comúnmente categorías o grupos
-        datasets: [
-          {
-            label: "Asistencias por obras",
-            data: datos, // Los datos numéricos para cada etiqueta
-            fill: true,
-            backgroundColor: [
-              "rgba(255, 99, 132, 0.2)",
-              "rgba(54, 162, 235, 0.2)",
-              "rgba(255, 206, 86, 0.2)",
-              "rgba(75, 192, 192, 0.2)",
-              "rgba(153, 102, 255, 0.2)",
-              "rgba(255, 159, 64, 0.2)",
-            ],
-            borderColor: [
-              "rgba(255, 99, 132, 1)",
-              "rgba(54, 162, 235, 1)",
-              "rgba(255, 206, 86, 1)",
-              "rgba(75, 192, 192, 1)",
-              "rgba(153, 102, 255, 1)",
-              "rgba(255, 159, 64, 1)",
-            ],
-            pointBackgroundColor: "rgb(255, 99, 132)",
-            pointBorderColor: "#fff",
-            pointHoverBackgroundColor: "#fff",
-            pointHoverBorderColor: "rgb(255, 99, 132)",
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        elements: {
-          line: {
-            borderWidth: 3,
-          },
         },
       },
     });

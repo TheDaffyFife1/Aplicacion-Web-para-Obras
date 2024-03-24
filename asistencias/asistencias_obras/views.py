@@ -471,7 +471,11 @@ def progreso_obras(request):
 
 def asistencia_obras(request):
     time_range = request.GET.get('time_range', 'weekly')
-    conjunto = int(request.GET.get('conjunto', 1))
+    conjunto = request.GET.get('conjunto', 1)
+    try:
+        conjunto = int(conjunto) if conjunto.isdigit() else 1
+    except ValueError:
+        conjunto = 1
 
     today = timezone.now().date()
 
@@ -479,15 +483,13 @@ def asistencia_obras(request):
     start_date = None
     end_date = None
 
-    if time_range == 'weekly':
+    if time_range == 'weekly' or time_range == 'range':
         start_date = today - timedelta(days=today.weekday(), weeks=(conjunto - 1))
         end_date = start_date + timedelta(days=6)
     elif time_range == 'monthly':
         start_date = today.replace(day=1) - timedelta(days=31 * (conjunto - 1))
         end_date = today
-    elif time_range == 'custom':
-        start_date = today - timedelta(days=today.weekday(), weeks=(conjunto - 1))
-        end_date = start_date + timedelta(days=6)
+
     else:
         # Opción para manejar un valor no esperado en time_range
         return JsonResponse({'error': 'El rango de tiempo especificado no es válido.'}, status=400)
@@ -513,6 +515,7 @@ def asistencia_obras(request):
             'obra_nombre': obra.nombre,
             'porcentaje_asistencia': porcentaje
         })
+    print(obras_data)
 
     # Retorna la información en formato JSON
     return JsonResponse({'obras': obras_data})
@@ -572,15 +575,17 @@ def tabla_pagos(request):
 
     today = timezone.now().date()
 
-    if time_range == 'weekly':
-        start_date = today - timedelta(weeks=conjunto, days=today.weekday())
-        end_date = start_date + timedelta(weeks=conjunto, days=6 - today.weekday())
+    if time_range == 'weekly' or time_range == 'range':
+        start_date = today - timedelta(weeks=(1 * conjunto), days=today.weekday())
+        end_date = start_date + timedelta(weeks=(1 * conjunto), days=6 - today.weekday())
     elif time_range == 'monthly':
         # Retroceder meses basado en el valor de `conjunto` y luego encontrar el inicio y final de ese mes
         month_first_day = today.replace(day=1) - timedelta(days=31 * (conjunto - 1))
         last_day = monthrange(month_first_day.year, month_first_day.month)[1]
         start_date = month_first_day
         end_date = month_first_day.replace(day=last_day)
+
+
     else:
         return JsonResponse({'error': 'Rango de tiempo no válido.'}, status=400)
 
