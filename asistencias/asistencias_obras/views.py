@@ -688,6 +688,56 @@ def empleados_rh(request):
 
     return JsonResponse({'data': data}, safe=False)
 
+
+@login_required
+def summary_week_data_RH(request):
+    user = request.user.userprofile
+    data = []
+
+    if user.role == RH_ROLE:
+        obra = user.obra_id
+        obra = Obra.objects.get(id=obra)
+        today = timezone.now().date()
+        this_week_start = today - timezone.timedelta(days=today.weekday())
+        this_week_end = this_week_start + timezone.timedelta(days=6)
+
+
+        # Asistencia válida para la semana actual
+        valid_attendances_week = Asistencia.objects.filter(
+            fecha__gte=this_week_start,
+            fecha__lte=this_week_end,
+            entrada__isnull=False,
+            salida__isnull=False
+        ).values('empleado', 'fecha').annotate(daily_payment=Sum(F('empleado__sueldo')/6)).order_by('empleado')
+
+        # Inicializar el total del pago para la semana
+        total_payment_for_week = 0
+
+        # Calcular el sueldo total de la semana basado en la asistencia válida
+        for attendance in valid_attendances_week:
+            total_payment_for_week += attendance['daily_payment']
+
+        total_payment_for_week = round(total_payment_for_week, 2)
+
+        # Calcular jornadas completas de la semana
+        jornadas_completas_week = sum(1 for _ in valid_attendances_week)
+
+        # Contar proyectos y empleados activos
+        active_employees_count = Empleado.objects.filter(obra=obra).distinct().count()
+
+        data = {
+            'obra' : obra.nombre,
+            'active_employees': active_employees_count,
+            'total_payment_for_week': total_payment_for_week,
+            'weekly_attendance_count': valid_attendances_week.count(),
+            'jornadas_completas_week': jornadas_completas_week,
+        }
+        print(data)
+
+    return JsonResponse(data, safe=False)
+
+
+
     
 
 
