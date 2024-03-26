@@ -16,6 +16,21 @@
 
 
 
+<div class="p-4 rounded-lg" >
+  <div class="p-4 bg-white shadow-md rounded-lg">
+      <p class="text-xl pb-3 flex items-center">
+          <i class="fas fa-plus mr-3"></i> Asistencia por Jornada
+      </p>
+      <div class="w-full flex justify-center">
+          <canvas id="jornada_laboral" class="w-full"></canvas>
+      <div class="w-full flex justify-center">
+
+      </div>
+  </div>
+</div>
+
+
+
 
 <div class="p-4 rounded-lg" >
     <div class="p-4 bg-white shadow-md rounded-lg">
@@ -79,6 +94,74 @@
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js" integrity="sha256-R4pqcOYV8lt7snxMQO/HSbVCFRPMdrhAFMH+vr9giYI=" crossorigin="anonymous"></script>
 
 <script>
+$(document).ready(function() {
+  $.ajax({
+    url: '/ajax/attendance_by_week_project_RH/',
+    type: 'GET',
+    dataType: 'json',
+    success: function(response) {
+      // Cambiado 'data' por 'response' que es lo que devuelve la llamada AJAX
+      const labels = response.map((item) => item.nombre);
+      const fullTimeData = response.map((item) => item.full_time);
+      const partTimeData = response.map((item) => item.part_time);
+      const notAttendedData = response.map((item) => item.not_attended);
+
+      const ctx = document.getElementById("jornada_laboral").getContext("2d");
+      
+      // Destruir el gráfico anterior si existe para evitar superposiciones
+      if (window.attendanceChart) {
+        window.attendanceChart.destroy();
+      }
+
+      // Asignar la nueva instancia a una variable global para su posterior destrucción
+      window.attendanceChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: "Jornada Completa",
+              data: fullTimeData,
+              backgroundColor: "rgba(54, 162, 235, 0.2)",
+              borderColor: "rgba(54, 162, 235, 1)",
+              borderWidth: 1,
+            },
+            {
+              label: "Media Jornada",
+              data: partTimeData,
+              backgroundColor: "rgba(255, 206, 86, 0.2)",
+              borderColor: "rgba(255, 206, 86, 1)",
+              borderWidth: 1,
+            },
+            {
+              label: "No Asistieron",
+              data: notAttendedData,
+              backgroundColor: "rgba(255, 99, 132, 0.2)",
+              borderColor: "rgba(255, 99, 132, 1)",
+              borderWidth: 1,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+            },
+          },
+        },
+      });
+    },
+    error: function(error) {
+      console.error("Error al cargar los datos: ", error);
+      alert("Error al cargar los datos.");
+    }
+  });
+});
+
+
+
 
 $(document).ready(function() {
     // Función para cargar los datos

@@ -736,6 +736,55 @@ def summary_week_data_RH(request):
 
     return JsonResponse(data, safe=False)
 
+@login_required
+def attendance_by_week_project_RH(request):
+
+    user = request.user.userprofile
+
+    if user.role == RH_ROLE:
+        obra = user.obra_id
+        
+        # Obtener la fecha de inicio y fin de la semana actual
+        today = timezone.now().date()
+        week_start = today - timezone.timedelta(days=today.weekday())  # Lunes
+        week_end = week_start + timezone.timedelta(days=6)  # Domingo
+
+        # Ajustar la consulta para calcular asistencia semanal por proyecto
+        attendance_data = Obra.objects.filter(id=obra).annotate(
+            full_time=Count(
+                Case(
+                    When(
+                        empleado__asistencia__entrada__isnull=False, 
+                        empleado__asistencia__salida__isnull=False, 
+                        empleado__asistencia__fecha__range=(week_start, week_end),
+                        then=1
+                    )
+                )
+            ),
+            part_time=Count(
+                Case(
+                    When(
+                        empleado__asistencia__entrada__isnull=False, 
+                        empleado__asistencia__salida__isnull=True, 
+                        empleado__asistencia__fecha__range=(week_start, week_end),
+                        then=1
+                    )
+                )
+            ),
+            not_attended=Count(
+                Case(
+                    When(
+                        empleado__asistencia__entrada__isnull=True, 
+                        empleado__asistencia__fecha__range=(week_start, week_end),
+                        then=1
+                    )
+                )
+            ),
+        ).values('nombre', 'full_time', 'part_time', 'not_attended')
+    print(attendance_data)
+
+    return JsonResponse(list(attendance_data), safe=False)
+
 
 
     
