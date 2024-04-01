@@ -293,7 +293,7 @@ def summary_week_data(request):
         'jornadas_completas_week': jornadas_completas_week,
     }
     print(summary)
-    return JsonResponse(summary)
+    return JsonResponse({'data':summary}, safe=False)
 
 #Funciones para RH
 @login_required
