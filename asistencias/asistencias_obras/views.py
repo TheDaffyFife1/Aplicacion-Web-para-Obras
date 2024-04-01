@@ -245,14 +245,26 @@ def project_progress(request):
 
 @login_required
 def summary_week_data(request):
+    time_range = request.GET.get('time_range', 'weekly')
+    conjunto = int(request.GET.get('conjunto', 1))
     today = timezone.now().date()
-    this_week_start = today - timezone.timedelta(days=today.weekday())
-    this_week_end = this_week_start + timezone.timedelta(days=6)  # Semana de lunes a domingo
+
+    if time_range == 'weekly' or time_range == 'range':
+        start_date = today - timedelta(weeks=(1 * conjunto), days=today.weekday())
+        end_date = start_date + timedelta(weeks=(1 * conjunto), days=6 - today.weekday())
+    elif time_range == 'monthly':
+        # Retroceder meses basado en el valor de `conjunto` y luego encontrar el inicio y final de ese mes
+        month_first_day = today.replace(day=1) - timedelta(days=31 * (conjunto - 1))
+        last_day = monthrange(month_first_day.year, month_first_day.month)[1]
+        start_date = month_first_day
+        end_date = month_first_day.replace(day=last_day)
+
+    #this_week_start = today - timezone.timedelta(days=today.weekday())
+    #this_week_end = this_week_start + timezone.timedelta(days=6)  # Semana de lunes a domingo
 
     # Asistencia válida para la semana actual
     valid_attendances_week = Asistencia.objects.filter(
-        fecha__gte=this_week_start,
-        fecha__lte=this_week_end,
+        fecha__range=(start_date, end_date),
         entrada__isnull=False,
         salida__isnull=False
     ).values('empleado', 'fecha').annotate(daily_payment=Sum(F('empleado__sueldo')/6)).order_by('empleado')
@@ -280,7 +292,7 @@ def summary_week_data(request):
         'weekly_attendance_count': valid_attendances_week.count(),
         'jornadas_completas_week': jornadas_completas_week,
     }
-
+    print(summary)
     return JsonResponse(summary)
 
 #Funciones para RH

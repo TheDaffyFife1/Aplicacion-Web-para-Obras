@@ -456,6 +456,8 @@ $(document).ready(function() {
 
     var miGraficoDeRadar; // Variable global para mantener la instancia del gráfico
 
+
+
 function cargarDatosAsistencia(timeRange, conjunto) {
     $.ajax({
         url: "/ajax/asistencia_obras/",
@@ -625,10 +627,17 @@ function cargarDatosAsistencia(timeRange, conjunto) {
     fetchProjectProgress(csrftoken);
   });
 
-  function fetchSummaryData(csrftoken) {
-    fetch("/summary-data/")
-      .then((response) => response.json())
-      .then((data) => {
+  function fetchSummaryData(csrftoken, timeRange, conjunto) {
+
+    $.ajax({
+      url: "/summary-data/",
+      method: "GET",
+      data: {
+        'time_range': timeRange,
+        'conjunto': conjunto
+      },
+      success: function (response) {
+        console.log(response)
         const summaryContainer = document.getElementById("summary-info");
         summaryContainer.innerHTML = `
             <div class="w-full px-6 py-6 mx-auto">
@@ -641,7 +650,7 @@ function cargarDatosAsistencia(timeRange, conjunto) {
               <div class="flex-none w-2/3 max-w-full px-3">
                 <div>
                   <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Obras Activas:</p>
-                  <h5 class="mb-2 font-bold dark:text-white"> ${data.active_projects}</h5>
+                  <h5 class="mb-2 font-bold dark:text-white"> ${response.active_projects}</h5>
                   <p class="mb-0 dark:text-white dark:opacity-60">
                     <span class="text-sm font-bold leading-normal text-emerald-500"></span>
                   </p>
@@ -664,7 +673,7 @@ function cargarDatosAsistencia(timeRange, conjunto) {
               <div class="flex-none w-2/3 max-w-full px-3">
                 <div>
                   <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Empleados Laborando</p>
-                  <h5 class="mb-2 font-bold dark:text-white">${data.active_employees}</h5>
+                  <h5 class="mb-2 font-bold dark:text-white">${response.active_employees}</h5>
                   <p class="mb-0 dark:text-white dark:opacity-60">
                     <span class="text-sm font-bold leading-normal text-emerald-500"></span>
                   </p>
@@ -687,7 +696,7 @@ function cargarDatosAsistencia(timeRange, conjunto) {
               <div class="flex-none w-2/3 max-w-full px-3">
                 <div>
                   <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Total a Pagar</p>
-                  <h5 class="mb-2 font-bold dark:text-white">$ ${data.total_payment_for_week}</h5>
+                  <h5 class="mb-2 font-bold dark:text-white">$ ${response.total_payment_for_week}</h5>
                   <p class="mb-0 dark:text-white dark:opacity-60">
                     <span class="text-sm font-bold leading-normal text-red-600"></span>
                   </p>
@@ -710,7 +719,7 @@ function cargarDatosAsistencia(timeRange, conjunto) {
               <div class="flex-none w-2/3 max-w-full px-3">
                 <div>
                   <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Empleados Activos</p>
-                  <h5 class="mb-2 font-bold dark:text-white">${data.jornadas_completas_week}</h5>
+                  <h5 class="mb-2 font-bold dark:text-white">${response.jornadas_completas_week}</h5>
                   <p class="mb-0 dark:text-white dark:opacity-60">
                     <span class="text-sm font-bold leading-normal text-emerald-500"></span>
                   </p>
@@ -728,6 +737,17 @@ function cargarDatosAsistencia(timeRange, conjunto) {
     </div>    
           
             `;
+      },
+      error: function (xhr, status, error) {
+        console.error("Error en la solicitud AJAX: ", xhr, status, error);
+      },
+    });
+        
+
+    fetch("/summary-data/")
+      .then((response) => response.json())
+      .then((data) => {
+        
       })
       .catch((error) => console.error("Error:", error));
   }
