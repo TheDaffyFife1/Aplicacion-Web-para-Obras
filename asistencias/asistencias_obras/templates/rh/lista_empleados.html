@@ -50,7 +50,12 @@
                     
                     <td class="text-center py-3 px-4">
                         <a href="{% url 'editar_empleado' empleado.id %} " class="boton-accion boton-editar">Editar</a>
-                        <a href="{{ empleado.codigo_qr.url }}" download="QR_{{ empleado.nombre }}.png" class="boton-accion">Descargar QR</a>
+                        {% if empleado.codigo_qr and empleado.codigo_qr.url %}
+                            <a href="{{ empleado.codigo_qr.url }}" download="QR_{{ empleado.nombre }}.png" class="boton-accion">Descargar QR</a>
+                        {% else %}
+                            <p>No hay código QR disponible.</p>
+                        {% endif %}
+
                     </td>
                 </tr>
                 {% endfor %}
