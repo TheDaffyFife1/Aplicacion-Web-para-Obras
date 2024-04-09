@@ -614,7 +614,6 @@ def tabla_pagos(request):
     ).order_by('empleado')
 
     response_data = list(valid_attendances.values('empleado__nombre', 'empleado__obra__nombre', 'days_worked', 'total_payment'))
-    
     pago_empleado = []
     for key, group in groupby(response_data, key=lambda x: x['empleado__nombre']):
         pagos = sum(d['total_payment'] for d in group)
@@ -651,9 +650,19 @@ def tabla_pagos(request):
     for key, group in groupby(response_data, key=lambda x: x['empleado__obra__nombre']):
         pagos = sum(d['total_payment'] for d in group)
         data.append({'obra': key, 'total_pago': pagos})
-    print(unificados)
+    unificados = sorted(unificados, key=lambda x: x['obra'])
+    data = sorted(data, key=lambda x: x['obra'])
+    suma = {}
+    for pago in data:
+        obra = pago['obra']
+        total = pago['total_pago']
+        if obra in suma:
+            suma[obra] += total
+        else:
+            suma[obra] = total
+    resultado = [{'obra': obra, 'total_pago': total} for obra, total in suma.items()]
 
-    return JsonResponse({'data': unificados, 'pago_obra': data}, safe=False)
+    return JsonResponse({'data': unificados, 'pago_obra': resultado}, safe=False)
 
 
 
