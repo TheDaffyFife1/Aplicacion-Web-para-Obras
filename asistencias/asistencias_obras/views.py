@@ -531,7 +531,7 @@ def asistencia_obras(request):
         porcentaje = (obra.total_asistencias / (obra.total_empleados * dias_laborales) * 100) if obra.total_empleados else 0
         obras_data.append({
             'obra_nombre': obra.nombre,
-            'porcentaje_asistencia': porcentaje
+            'porcentaje_asistencia': int(porcentaje)
         })
     print(obras_data)
 
