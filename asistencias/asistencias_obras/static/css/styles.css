@@ -1,3 +1,69 @@
+@import url('https://fonts.googleapis.com/css?family=Karla:400,700&display=swap');
+        .font-family-karla { 
+            font-family: karla; 
+        }
+        .bg-sidebar { 
+            background: #3d68ff; 
+        }
+        .cta-btn { 
+            color: #3d68ff; 
+        }
+        .upgrade-btn { 
+            background: #1947ee; 
+        }
+        .upgrade-btn:hover { 
+            background: #0038fd; }
+        .active-nav-link { 
+            background: #1947ee; }
+        .nav-item:hover { 
+            background: #1947ee; 
+        }
+        .account-link:hover { 
+            background: #3d68ff; 
+        }
+        .boton-accion {
+        display: inline-block;
+        padding: 8px 15px;
+        font-size: 14px;
+        cursor: pointer;
+        text-align: center;
+        text-decoration: none;
+        outline: none;
+        color: #fff;
+        background-color: #4CAF50;
+        border: none;
+        border-radius: 5px;
+        box-shadow: 0 9px #999;
+        margin: 2px;
+    }
+
+    .boton-accion:hover {background-color: #3e8e41}
+
+    .boton-accion:active {
+        background-color: #3e8e41;
+        box-shadow: 0 5px #666;
+        transform: translateY(4px);
+    }
+
+    .boton-editar {
+        background-color: #008CBA;
+    }
+
+    .boton-eliminar {
+        background-color: #f44336;
+    }
+
+    .boton-activar, .boton-desactivar {
+        background-color: #555555;
+    }
+    .nav-item {
+        transition: all 0.3s ease-in-out;
+    }
+    
+    .nav-item:hover, .nav-item:focus {
+        transform: scale(1.05);
+        opacity: 1;
+    }
 #loading {
     position: fixed;
     width: 100%;
