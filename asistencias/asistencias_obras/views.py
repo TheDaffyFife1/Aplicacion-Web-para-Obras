@@ -689,7 +689,10 @@ def progreso(request):
         transcurrido = (hoy.date() - obra.fecha_inicio).days
         if transcurrido > 0:
             porcenaje = (transcurrido / total) * 100 if total else 0
-            resto = 100 - abs(porcenaje)
+            if porcenaje > 100:
+                porcenaje = 100
+                resto = 0
+            resto = 100 - porcenaje
             porcenaje = round(porcenaje, 2)
             resto = round(resto, 2)
             data.append({
