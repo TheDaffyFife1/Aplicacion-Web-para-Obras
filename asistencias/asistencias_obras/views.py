@@ -284,22 +284,23 @@ def summary_week_data(request):
     total_payment_for_week = sum(attendance['daily_payment'] for attendance in valid_attendances_week)
     total_payment_for_week = round(total_payment_for_week, 2)
 
-    # Calcular jornadas completas de la semana
-    jornadas_completas_week = len(valid_attendances_week)
 
     # Contar proyectos y empleados activos basados en la fecha de inicio
     active_projects_count = Obra.objects.filter(fecha_inicio__lte=today, fecha_fin__gte=today).count()
-    active_employees_count = Empleado.objects.filter(
-        obra__fecha_inicio__lte=today, 
-        obra__fecha_fin__gte=today
+    
+    active_obras = Obra.objects.filter(fecha_inicio__lte=today, fecha_fin__gte=today)
+    active_projects_id = active_obras.values('id')
+
+
+    active_employees_count = Empleado.objects.all().filter(
+        Q(obra__in=active_projects_id)
     ).distinct().count()
 
     summary = {
         'active_projects': active_projects_count,
         'active_employees': active_employees_count,
         'total_payment_for_week': total_payment_for_week,
-        'weekly_attendance_count': valid_attendances_week.count(),
-        'jornadas_completas_week': jornadas_completas_week,
+
     }
 
     return JsonResponse({'data':summary}, safe=False)
@@ -668,9 +669,16 @@ def tabla_pagos(request):
             suma[obra] += total
         else:
             suma[obra] = total
-    resultado = [{'obra': obra, 'total_pago': total} for obra, total in suma.items()]
+    resultado = [{'obra': obra, 'total_pago': int(total)} for obra, total in suma.items()]
 
-    return JsonResponse({'data': unificados, 'pago_obra': resultado}, safe=False)
+    obras = []
+    pagos = []
+    
+    for obra in resultado:
+        obras.append(obra['obra'])
+        pagos.append(obra['total_pago'])
+
+    return JsonResponse({'labels': obras, 'data': pagos}, safe=False)
 
 
 

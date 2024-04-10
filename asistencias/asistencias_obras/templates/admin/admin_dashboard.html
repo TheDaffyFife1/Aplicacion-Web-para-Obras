@@ -86,21 +86,15 @@
 <div>
 <h1 class="text-3xl text-black pb-6">Dashboard</h1>
 <div class="max-w-full px-6 py-6 mx-auto" id="summary-info"></div>
-<div class="flex flex-wrap -mx-3">
-  <div class="w-full md:w-1/2 px-3 mb-6 md:mb-0">
+
+<div class="p-4 rounded-lg">
+  <!-- Asistencias sección -->
+  <div class="p-4 bg-white shadow-md rounded-lg">
     <p class="text-xl pb-3 flex items-center">
-      <i class="fas fa-plus mr-3"></i> Empleados por Obra
+      <i class="fas fa-plus mr-3"></i> Asistencias
     </p>
-    <div class="p-6 bg-white shadow-md rounded-lg">
-      <canvas id="attendance-chart" class="w-full"></canvas>
-    </div>
-  </div>
-  <div class="w-full md:w-1/2 px-3">
-    <p class="text-xl pb-3 flex items-center">
-      <i class="fas fa-check mr-3"></i> Progreso de Obra
-    </p>
-    <div class="p-6 bg-white shadow-md rounded-lg">
-      <canvas id="progress-chart" class="w-full"></canvas>
+    <div class="w-full flex justify-center">
+      <canvas id="attendance-chart" class="canvas_especial"></canvas>
     </div>
   </div>
 </div>
@@ -108,6 +102,7 @@
 
 
 <div class="p-4 rounded-lg" >
+  <!--progreso seccion-->
   <div class="p-4 bg-white shadow-md rounded-lg">
       <p class="text-xl pb-3 flex items-center">
           <i class="fas fa-plus mr-3"></i> Progreso de obras
@@ -116,110 +111,56 @@
           <canvas id="transcurrido" class="canvas_especial" ></canvas>
       </div>
   </div>
-  <div class="bg-white p-4 mt-4">
-    <div class="p-4 bg-white shadow-md rounded-lg">  
-
- 
- 
-      <p class="text-xl pb-3 flex items-center">
-          <i class="fas fa-check mr-3"></i> Asistencia de empleados
-      </p>
-      <div class="w-full flex justify-center">
-          <canvas id="asistencia" class="canvas_especial"></canvas>
-      </div>
-     
-  </div>
-</div>
-
-</div>
 
 
-<div class="p-4 rounded-lg">
-  <p class="text-xl pb-3 flex items-center">
-    <i class="fas fa-check mr-3"></i>Tablas de pagos 
-</p>
+
+
+
 <div class="w-full mt-12 bg-white rounded-lg">
 
 <div class="p-4 bg-white shadow-md rounded-lg">  
-  <p class="text-xl pb-3 flex items-center">
-    <i class="mr-3"></i> Pagos por Empleado
+
+<p class="text-xl pb-3 flex items-center">
+  <i class="mr-3"></i> Pagos por Obra
 </p>
+<div class="w-full flex justify-center">
+  <canvas id="pagos_obra" class="canvas_especial" ></canvas>
+</div>
+</div>
 
 
-  <table id="tablaPagosEmpleados" class="table table-striped">
-    <thead class="bg-black-800 text-white">
+</div>
+
+</div>
+
+</div>
+
+
+
+<div class="w-full mt-12 bg-white rounded-lg">
+
+  <div class="p-4 bg-white shadow-md rounded-lg">  
+  
+  <p class="text-xl pb-3 flex items-center">
+    <i class="mr-3"></i> Pagos por Obra
+  </p>
+  <table id="tablaPagosObra" class="table table-striped">
+    <thead class="bg-gray-800 text-white">
         <tr>
-          <th class="w-1/3 text-left py-3 px-4 uppercase font-semibold text-sm">Empleado</th>
           <th class="w-1/3 text-left py-3 px-4 uppercase font-semibold text-sm">Obra</th>
-          <th class="w-1/3 text-left py-3 px-4 uppercase font-semibold text-sm">Dias laborados</th>
           <th class="w-1/3 text-left py-3 px-4 uppercase font-semibold text-sm">Pago</th>
         </tr>
     </thead>
     <tbody>
         <!--Datos obtenidos con AJAX-->
     </tbody>
- </table>
-
-<hr class=" border-3 my-4">
-<p class="text-xl pb-3 flex items-center">
-  <i class="mr-3"></i> Pagos por Obra
-</p>
-<table id="tablaPagosObra" class="table table-striped">
-  <thead class="bg-gray-800 text-white">
-      <tr>
-        <th class="w-1/3 text-left py-3 px-4 uppercase font-semibold text-sm">Obra</th>
-        <th class="w-1/3 text-left py-3 px-4 uppercase font-semibold text-sm">Pago</th>
-      </tr>
-  </thead>
-  <tbody>
-      <!--Datos obtenidos con AJAX-->
-  </tbody>
-</table>
-
-</div>
-
-
-</div>
-
-
-
-
-<div class="p-4 rounded-lg">
-    <p class="text-xl pb-3 flex items-center">
-      <i class="fas fa-check mr-3"></i> Obras con Empleados
-  </p>
-<div class="w-full mt-12 bg-white rounded-lg">
-
-  <div class="p-4 bg-white shadow-md rounded-lg">                   
-
-  <table id="tablaObras" class="table table-striped">
-     <thead class="bg-gray-800 text-white">
-         <tr>
-             <th class="w-1/3 text-left py-3 px-4 uppercase font-semibold text-sm">Obra</th>
-             <th class="w-1/3 text-left py-3 px-4 uppercase font-semibold text-sm">Empleados</th>
-         </tr>
-     </thead>
-     <tbody>
-         <!--Datos obtenidos con AJAX-->
-     </tbody>
   </table>
-  </div>    
-</div>
-</div>
-
-<div class="flex flex-wrap mt-6">
-  <p class="text-xl pb-3 flex items-center">
-      <i class="fas fa-check mr-3"></i> Progreso de Obras Individuales
-  </p>
-  <div class="grid-container " id="chart-container">
-      <!-- Gráficas de pastel de progreso de obras -->
+  
   </div>
-
-
-</div>
-
-</div>
-
+  
+  
+  </div>
+  
 <script
   src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js"
   defer
@@ -237,394 +178,143 @@
 <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
 <!-- Bootstrap Bundle JS (incluye Popper) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-<!-- DataTables JS -->
-<script src="https://cdn.datatables.net/2.0.3/js/dataTables.js"></script>
+
 <!-- DataTables Bootstrap 5 JS -->
 <script src="https://cdn.datatables.net/2.0.3/js/dataTables.bootstrap5.js"></script>
 
 
 <script>
-let asistencia;
+$(document).ready(function(){
+  $.ajax({
+    url: "/ajax/tabla_pagos/",
+    method: "GET",
+    success: function (respuesta) {
+      var labels = respuesta.labels
+      var data = respuesta.data
 
-$(document).ready(function() {
-    function cargarDatos(timeRange, conjunto = 1) {
-        // Limpia las tablas antes de cargar nuevos datos
+      crearGrafica(
+        labels,
+        data,
+        "bar",
+        "pagos_obra",
+        "Pagos por Obra",
+        false
+        
 
+      );
 
-        $.ajax({
-            url: '/ajax/tabla_pagos/',
-            data: {
-                'time_range': timeRange,
-                'conjunto': conjunto
-            },
-            dataType: 'json',
-            success: function(response) {
-                $('#tablaPagosEmpleados tbody').empty();
-                $('#tablaPagosObra tbody').empty();
-                var data = response.data;
-                var tabla = $("#tablaPagosEmpleados tbody");
-
-                $.each(data, function(i, item) {
-                    var fila = '<tr>' +
-                        '<td>' + item.empleado + '</td>' +
-                        '<td>' + item.obra + '</td>' +
-                        '<td>' + item.dias_trabajados + '</td>' +
-                        '<td>' + parseFloat(item.total_pago).toFixed(2) + '</td>' +
-                        '</tr>';
-                    tabla.append(fila);
-                });
-
-                var pagos = response.pago_obra;
-                var tablaObra = $("#tablaPagosObra tbody");
-
-                $.each(pagos, function(i, item) {
-                    var fila = '<tr>' +
-                        '<td>' + item.obra + '</td>' +
-                        '<td>' + parseFloat(item.total_pago).toFixed(2) + '</td>' +
-                        '</tr>';
-                    tablaObra.append(fila);
-                });
-            },
-            error: function() {
-                alert("Error al cargar los datos.");
-            }
-        });
-    }
-
-    // Manejar clics en los enlaces de la navbar para seleccionar el rango de tiempo
-    $('.nav-link').click(function() {
-
-        const timeRange = $(this).data('value') || 'weekly'; // Valor por defecto semanal
-        let conjunto = 1; // Valor por defecto para el conjunto
-
-
-        cargarDatos(timeRange, conjunto);
-    });
-
-    // Manejar selección de rango específico de semanas desde el dropdown
-    $('.dropdown-item').click(function() {
-
-        const conjunto = $(this).data('value');
-        cargarDatos('range', conjunto);
-    });
-
-    $('#navbar .nav-link[data-value="weekly"]').click();
-
-
-});
-
-
-  $(document).ready(function () {
-    $.ajax({
-      url: "/ajax/progreso_obras_indivual/", // URL del endpoint
-      method: "GET",
-      dataType: "json",
-      success: function (response) {
-        var contenedor = $("#chart-container");
-        contenedor.empty(); // Limpiar el contenedor para nuevas gráficas
-
-        response.labels.forEach(function (label, index) {
-          // Crea un nuevo div que actuará como contenedor para la gráfica de pastel y el título
-          var graficaDiv = $("<div>").addClass("grid-item bg-white rounded-lg shadow-md");
-
-          // Crea y añade un párrafo como título con el nombre de la obra
-          var titulo = $("<p>").text(label);
-          graficaDiv.append(titulo);
-
-          // Añade el elemento canvas al div contenedor
-          var canvasId = "graficaPastel" + index;
-          var canvas = $("<canvas>").attr("id", canvasId);
-          graficaDiv.append(canvas);
-
-          // Añade el div contenedor al contenedor principal
-          contenedor.append(graficaDiv);
-
-          // Calcula el progreso y el resto hasta el 100%
-          var progreso = response.data[index];
-          var resto = response.resto[index];
-          var texto = response.labels[index];
-
-          // Crea la gráfica de pastel para esta obra
-          var ctx = canvas.get(0).getContext("2d");
-          new Chart(ctx, {
-            type: "pie",
-            data: {
-              labels: ["Progreso", "Restante"],
-              datasets: [
-                {
-                  data: [progreso, resto],
-                  backgroundColor: [
-                    "rgb(75, 192, 192,0.2)",
-                    "rgb(255, 206, 86,0.2)",
-                    ], // Verde para progreso, amarillo para lo restante
-                  borderColor: [
-                    "rgb(75, 192, 192,1)",
-                    "rgb(255, 206, 86,1)",
-                    ],
-                  borderWidth: 1,
-                },
-              ],
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: {
-                  display: true,
-                },
-                title: {
-                  display: true,
-                  text: label, // Nombre de la obra como título de la gráfica
-                },
-              },
-            },
-          });
-        });
-      },
-      error: function (xhr, status, error) {
-        console.error("Error en la solicitud AJAX: ", xhr, status, error);
-      },
-    });
+    },
+    
   });
+})
 
-  $(document).ready(function () {
-    $.ajax({
-      url: "/ajax/obras_con_empleados/",
-      method: "GET",
-      success: function (response) {
-        var tabla = $("#tablaObras tbody");
-        tabla.empty(); // Limpia la tabla antes de llenarla con nuevos datos
 
-        response.obras.forEach(function (obra) {
-          var fila = $("<tr></tr>");
-          fila.append(
-            '<td class="w-1/3 text-left py-3 px-4">' +
-              obra.obra_nombre +
-              "</td>"
-          );
-
-          var listaEmpleados = obra.empleados
-            .map(function (empleado) {
-              return empleado.empleado_nombre;
-            })
-            .join(", "); // Crea una lista separada por comas de los nombres de los empleados
-
-          fila.append(
-            '<td class="w-1/3 text-left py-3 px-4">' + listaEmpleados + "</td>"
-          );
-
-          tabla.append(fila);
-        });
-      },
-    });
-  });
 
   $(document).ready(function () {
     $.ajax({
       url: "/ajax/progreso_obras/",
       method: "GET",
       success: function (respuesta) {
+        labels = respuesta.labels
+        data = respuesta.data
+
         crearGrafica(
-          respuesta.labels,
-          respuesta.data,
-          "polarArea",
-          "transcurrido"
+          labels,
+          data,
+          "bar",
+          "transcurrido",
+          "Progreso de Obras",
+          true
+
         );
+
       },
+      
     });
+
   });
 
 
-  $(document).ready(function() {
-    // Manejar clics en los enlaces de navegación para selección semanal y mensual
-    $('#navbar .nav-link[data-value]').click(function(e) {
-        e.preventDefault(); // Prevenir la acción por defecto
-        const value = $(this).data('value');
-        
-        // Llama a cargarDatosAsistencia según el valor de data-value
-        cargarDatosAsistencia(value, null); // No hay 'conjunto' para semanal o mensual
-    });
-
-    // Manejar selección específica del dropdown de "Conjunto de Semanas"
-    $('#navbar .dropdown-item').click(function(e) {
-        e.preventDefault(); // Prevenir la acción por defecto del enlace
-        const value = $(this).data('value');
-
-        // Aquí se asume que 'range' indica un conjunto de semanas y 'value' es el número de semanas
-        cargarDatosAsistencia('range', value);
-    });
-
-    var miGraficoDeRadar; // Variable global para mantener la instancia del gráfico
 
 
+function crearGrafica(etiquetas, datos, type, nombre, text, esHorizontal = false) {
+    const ctx = document.getElementById(nombre).getContext("2d");
 
-function cargarDatosAsistencia(timeRange, conjunto) {
-    $.ajax({
-        url: "/ajax/asistencia_obras/",
-        method: "GET",
-        data: {
-            'time_range': timeRange,
-            'conjunto': conjunto
-        },
-        success: function(respuesta) {
-            var etiquetas = respuesta.obras.map(obra => obra.obra_nombre);
-            var datos = respuesta.obras.map(obra => obra.porcentaje_asistencia);
+    const backgroundColors = [
+        "rgba(255, 99, 132, 0.2)",
+        "rgba(54, 162, 235, 0.2)",
+        "rgba(255, 206, 86, 0.2)",
+        "rgba(75, 192, 192, 0.2)",
+        "rgba(153, 102, 255, 0.2)",
+        "rgba(255, 159, 64, 0.2)"
+    ];
 
-            // Configuración para el gráfico de radar
-            var configuracion = {
-                type: 'radar',
-                data: {
-                    labels: etiquetas,
-                    datasets: [{
-                        label: 'Asistencia %',
-                        data: datos,
-                        fill: true,
-                        backgroundColor: [
-                          "rgba(255, 99, 132, 0.2)",
-                          "rgba(54, 162, 235, 0.2)",
-                          "rgba(255, 206, 86, 0.2)",
-                          "rgba(75, 192, 192, 0.2)",
-                          "rgba(153, 102, 255, 0.2)",
-                          "rgba(255, 159, 64, 0.2)",
-                        ],
-                        borderColor: [
-                          "rgba(255, 99, 132, 1)",
-                          "rgba(54, 162, 235, 1)",
-                          "rgba(255, 206, 86, 1)",
-                          "rgba(75, 192, 192, 1)",
-                          "rgba(153, 102, 255, 1)",
-                          "rgba(255, 159, 64, 1)",
-                        ],
-                        pointBackgroundColor: "rgb(255, 99, 132)",
-                        pointBorderColor: "#fff",
-                        pointHoverBackgroundColor: "#fff",
-                        pointHoverBorderColor: "rgb(255, 99, 132)",
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    elements: {
-                        line: {
-                            borderWidth: 3
-                        }
-                    }
-                }
-            };
-
-            // Destruir el gráfico anterior si existe
-            if (miGraficoDeRadar) {
-                miGraficoDeRadar.destroy();
-            }
-
-            // Crear un nuevo gráfico de radar
-            var ctx = document.getElementById('asistencia').getContext('2d');
-            miGraficoDeRadar = new Chart(ctx, configuracion);
-        },
-        error: function() {
-            alert("Error al cargar los datos.");
+    const borderColors = [
+        "rgba(255, 99, 132, 1)",
+        "rgba(54, 162, 235, 1)",
+        "rgba(255, 206, 86, 1)",
+        "rgba(75, 192, 192, 1)",
+        "rgba(153, 102, 255, 1)",
+        "rgba(255, 159, 64, 1)"
+    ];
+    if (datos.length > backgroundColors.length) {
+        while (backgroundColors.length < datos.length) {
+            backgroundColors = [...backgroundColors, ...backgroundColors.slice(0, datos.length - backgroundColors.length)];
         }
+    }
+
+    if (datos.length > borderColors.length) {
+        while (borderColors.length < datos.length) {
+            borderColors = [...borderColors, ...borderColors.slice(0, datos.length - borderColors.length)];
+        }
+    }
+
+    const datasets = datos.map((dato, index) => ({
+        label: etiquetas[index],
+        data: [dato],
+        backgroundColor: backgroundColors[index],
+        borderColor: borderColors[index],
+        borderWidth: 1
+    }));
+
+    const miGrafica = new Chart(ctx, {
+        type: type,
+        data: {
+            labels: [''], datasets: datasets
+        },
+        options: {
+            indexAxis: esHorizontal ? 'y' : 'x', // Define el eje principal para barras horizontales o verticales
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    display: type !== 'line', // Oculta el eje Y para gráficas de línea
+                },
+                x: {
+                    beginAtZero: true,
+                    display: type !== 'line', // Oculta el eje X para gráficas de línea
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                position: "top"
+            },
+            title : {
+                display: true,
+                text: text
+            }
+        } 
     });
 }
 
-    // Activa por defecto la selección semanal al cargar la página
-    $('#navbar .nav-link[data-value="weekly"]').click();
-});
-
-
-  function crearGrafica(etiquetas, datos, type, nombre) {
-    var ctx = document.getElementById(nombre).getContext("2d");
-    var miGraficaDePastel = new Chart(ctx, {
-      type: type,
-      data: {
-        labels: etiquetas,
-        datasets: [
-          {
-            label: "Grafica",
-            data: datos,
-            backgroundColor: [
-              "rgba(255, 99, 132, 0.2)",
-              "rgba(54, 162, 235, 0.2)",
-              "rgba(255, 206, 86, 0.2)",
-              "rgba(75, 192, 192, 0.2)",
-              "rgba(153, 102, 255, 0.2)",
-              "rgba(255, 159, 64, 0.2)",
-              "rgba(255, 99, 132, 0.2)",
-              "rgba(54, 162, 235, 0.2)",
-              "rgba(255, 206, 86, 0.2)",
-              "rgba(75, 192, 192, 0.2)",
-              "rgba(153, 102, 255, 0.2)",
-              "rgba(255, 159, 64, 0.2)",
-              "rgba(255, 99, 132, 0.2)",
-              "rgba(54, 162, 235, 0.2)",
-              "rgba(255, 206, 86, 0.2)",
-              "rgba(75, 192, 192, 0.2)",
-              "rgba(153, 102, 255, 0.2)",
-              "rgba(255, 159, 64, 0.2)",
-              "rgba(255, 99, 132, 0.2)",
-              "rgba(54, 162, 235, 0.2)",
-              "rgba(255, 206, 86, 0.2)",
-              "rgba(75, 192, 192, 0.2)",
-              "rgba(153, 102, 255, 0.2)",
-            ],
-            borderColor: [
-              "rgba(255, 99, 132, 1)",
-              "rgba(54, 162, 235, 1)",
-              "rgba(255, 206, 86, 1)",
-              "rgba(75, 192, 192, 1)",
-              "rgba(153, 102, 255, 1)",
-              "rgba(255, 159, 64, 1)",
-              "rgba(255, 99, 132, 1)",
-              "rgba(54, 162, 235, 1)",
-              "rgba(255, 206, 86, 1)",
-              "rgba(75, 192, 192, 1)",
-              "rgba(153, 102, 255, 1)",
-              "rgba(255, 159, 64, 1)",
-              "rgba(255, 99, 132, 1)",
-              "rgba(54, 162, 235, 1)",
-              "rgba(255, 206, 86, 1)",
-              "rgba(75, 192, 192, 1)",
-              "rgba(153, 102, 255, 1)",
-              "rgba(255, 159, 64, 1)",
-              "rgba(255, 99, 132, 1)",
-              "rgba(54, 162, 235, 1)",
-              "rgba(255, 206, 86, 1)",
-              "rgba(75, 192, 192, 1)",
-              "rgba(153, 102, 255, 1)",
-            ],
-            borderWidth: 1,
-          },
-        ],
-      },
-
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          r: {
-            ticks: {
-              beginAtZero: true,
-              min: 1,
-              max: 100,
-              stepSize: 10,
-            },
-          },
-        },
-      },
-      plugins: {
-        legend: {
-          position: "top",
-        },
-      },
-    });
-  }
 
   document.addEventListener("DOMContentLoaded", function () {
     const csrftoken = document.querySelector("[name=csrf-token]").content;
 
     fetchSummaryData(csrftoken);
     fetchAttendanceByProject(csrftoken);
-    fetchProjectProgress(csrftoken);
   });
 
   function fetchSummaryData(csrftoken, timeRange, conjunto) {
@@ -673,7 +363,7 @@ function cargarDatosAsistencia(timeRange, conjunto) {
             <div class="flex flex-row -mx-3">
               <div class="flex-none w-2/3 max-w-full px-3">
                 <div>
-                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Empleados Laborando</p>
+                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Total Empleados</p>
                   <h5 class="mb-2 font-bold dark:text-white">${data.active_employees}</h5>
                   <p class="mb-0 dark:text-white dark:opacity-60">
                     <span class="text-sm font-bold leading-normal text-emerald-500"></span>
@@ -696,8 +386,8 @@ function cargarDatosAsistencia(timeRange, conjunto) {
             <div class="flex flex-row -mx-3">
               <div class="flex-none w-2/3 max-w-full px-3">
                 <div>
-                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Total a Pagar</p>
-                  <h5 class="mb-2 font-bold dark:text-white">$ ${data.total_payment_for_week}</h5>
+                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Empleados Activos</p>
+                  <h5 class="mb-2 font-bold dark:text-white">$ ${data.jornadas_completas_week}</h5>
                   <p class="mb-0 dark:text-white dark:opacity-60">
                     <span class="text-sm font-bold leading-normal text-red-600"></span>
                   </p>
@@ -719,8 +409,8 @@ function cargarDatosAsistencia(timeRange, conjunto) {
             <div class="flex flex-row -mx-3">
               <div class="flex-none w-2/3 max-w-full px-3">
                 <div>
-                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Empleados Activos</p>
-                  <h5 class="mb-2 font-bold dark:text-white">${data.jornadas_completas_week}</h5>
+                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Total a Pagar</p>
+                  <h5 class="mb-2 font-bold dark:text-white">${data.total_payment_for_week}</h5>
                   <p class="mb-0 dark:text-white dark:opacity-60">
                     <span class="text-sm font-bold leading-normal text-emerald-500"></span>
                   </p>
@@ -778,14 +468,14 @@ function cargarDatosAsistencia(timeRange, conjunto) {
                 borderWidth: 1,
               },
               {
-                label: "Media Jornada",
+                label: "Jornada Incompleta",
                 data: partTimeData,
                 backgroundColor: "rgba(255, 206, 86, 0.2)",
                 borderColor: "rgba(255, 206, 86, 1)",
                 borderWidth: 1,
               },
               {
-                label: "No Asistieron",
+                label: "Sin Asistencia",
                 data: notAttendedData,
                 backgroundColor: "rgba(255, 99, 132, 0.2)",
                 borderColor: "rgba(255, 99, 132, 1)",
@@ -807,52 +497,7 @@ function cargarDatosAsistencia(timeRange, conjunto) {
       .catch((error) => console.error("Error:", error));
   }
 
-  function fetchProjectProgress(csrftoken) {
-    fetch("/project-progress/")
-      .then((response) => response.json())
-      .then((data) => {
-        const labels = data.map((item) => item.nombre);
-        const progressData = data.map((item) => item.progress);
-
-        const ctx = document.getElementById("progress-chart").getContext("2d");
-        new Chart(ctx, {
-          type: "line",
-          data: {
-            labels: labels,
-            datasets: [
-              {
-                label: "Progreso de la Obra (%)",
-                data: progressData,
-                backgroundColor: "rgba(75, 192, 192, 0.2)",
-                borderColor: "rgba(75, 192, 192, 1)",
-                borderWidth: 2,
-                fill: false,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-              y: {
-                beginAtZero: true,
-              },
-            },
-            animation: {
-              duration: 800,
-              easing: "easeInOutQuad",
-            },
-            plugins: {
-              legend: {
-                position: "top",
-              },
-            },
-          },
-        });
-      })
-      .catch((error) => console.error("Error:", error));
-  }
-
+ 
 
 </script>
 {% endblock %}
