@@ -683,9 +683,23 @@ def tabla_pagos(request):
     return JsonResponse({'labels': obras, 'data': pagos}, safe=False)
     
 @login_required
-def supervisores(request):
-    supervisores = Obra.objects
-    ...
+def supervisores_obras(request):
+    supervisores = UserProfile.objects.all().filter(role=RH_ROLE)
+    
+    data = []
+
+    for supervisor in supervisores:
+        obras = Obra.objects.all().filter(id=supervisor.obra_id)
+        
+        for obra in obras:
+
+            data.append({
+                'nombre': supervisor.user.username,
+                'obra': obra.nombre
+            })
+
+    print(data)
+    return JsonResponse({"data":data}, safe=False)  
 
 
 #RH
