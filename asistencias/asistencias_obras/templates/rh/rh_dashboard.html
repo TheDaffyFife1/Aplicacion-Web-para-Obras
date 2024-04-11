@@ -88,57 +88,41 @@ $(document).ready(function() {
     type: 'GET',
     dataType: 'json',
     success: function(response) {
-      // Cambiado 'data' por 'response' que es lo que devuelve la llamada AJAX
-      const labels = response.map((item) => item.nombre);
-      const fullTimeData = response.map((item) => item.full_time);
-      const partTimeData = response.map((item) => item.part_time);
-      const notAttendedData = response.map((item) => item.not_attended);
-
-      const ctx = document.getElementById("jornada_laboral").getContext("2d");
+      var data = response.data;
+      var labels = response.labels;
       
-      // Destruir el gráfico anterior si existe para evitar superposiciones
+
+      var ctx = document.getElementById("jornada_laboral").getContext("2d");
+      
+      // Destruir el gráfico anterior si existe
       if (window.attendanceChart) {
         window.attendanceChart.destroy();
       }
 
-      // Asignar la nueva instancia a una variable global para su posterior destrucción
+      // Crear una nueva instancia del gráfico
       window.attendanceChart = new Chart(ctx, {
-        type: "bar",
+        type: 'line', // Tipo de gráfica
         data: {
-          labels: labels,
-          datasets: [
-            {
-              label: "Jornada Completa",
-              data: fullTimeData,
-              backgroundColor: "rgba(54, 162, 235, 0.2)",
-              borderColor: "rgba(54, 162, 235, 1)",
-              borderWidth: 1,
-            },
-            {
-              label: "Media Jornada",
-              data: partTimeData,
-              backgroundColor: "rgba(255, 206, 86, 0.2)",
-              borderColor: "rgba(255, 206, 86, 1)",
-              borderWidth: 1,
-            },
-            {
-              label: "No Asistieron",
-              data: notAttendedData,
-              backgroundColor: "rgba(255, 99, 132, 0.2)",
-              borderColor: "rgba(255, 99, 132, 1)",
-              borderWidth: 1,
-            },
-          ],
+          labels: labels, // Usar las etiquetas recibidas
+          datasets: [{
+            label: 'Asistencias', // Puedes cambiar este texto por algo más descriptivo según tus datos
+            data: data, // Usar los datos recibidos
+            backgroundColor: "rgba(255, 99, 132, 0.2)", // Color de fondo
+            borderColor: "rgba(255, 99, 132, 1)", // Color de la línea
+            borderWidth: 2,
+            fill: false, // No rellenar bajo la línea
+            tension: 0 // Curvatura de la línea
+          }]
         },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
           scales: {
             y: {
-              beginAtZero: true,
-            },
+              beginAtZero: true // El eje Y comienza en 0
+            }
           },
-        },
+          responsive: true, // Hace que la gráfica sea responsive
+          maintainAspectRatio: false // Mantiene la proporción del aspecto según el tamaño dado
+        }
       });
     },
     error: function(error) {

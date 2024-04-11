@@ -147,7 +147,7 @@
   <table id="tablaSupervisores" class="table table-striped">
     <thead class="bg-gray-800 text-white">
         <tr>
-          <th class="w-1/3 text-left py-3 px-4 uppercase font-semibold text-sm">Supervisor</th>
+          <th class="w-1/3 text-left py-3 px-4 uppercase font-semibold text-sm text-center">Supervisor</th>
           <th class="w-1/3 text-left py-3 px-4 uppercase font-semibold text-sm">Obra</th>
         </tr>
     </thead>
@@ -220,24 +220,39 @@ $(document).ready(function(){
     url: "/ajax/tabla_pagos/",
     method: "GET",
     success: function (respuesta) {
-      var labels = respuesta.labels
-      var data = respuesta.data
+      var labels = respuesta.labels; // Asume que la respuesta incluye etiquetas
+      var data = respuesta.data; // Asume que la respuesta incluye los datos correspondientes
 
-      crearGrafica(
-        labels,
-        data,
-        "bar",
-        "pagos_obra",
-        "Pagos por Obra",
-        false
-        
-
-      );
-
+      var ctx = document.getElementById('pagos_obra').getContext('2d'); // Obtiene el contexto del canvas
+      var myChart = new Chart(ctx, {
+        type: 'line', // Tipo de gráfica
+        data: {
+          labels: labels, // Usar las etiquetas recibidas
+          datasets: [{
+            label: 'Pagos por obra', // Puedes cambiar este texto por algo más descriptivo según tus datos
+            data: data, // Usar los datos recibidos
+            backgroundColor: "rgba(255, 99, 132, 0.2)", // Color de fondo
+            borderColor: "rgba(255, 99, 132, 1)", // Color de la línea
+            borderWidth: 2,
+            fill: false // No rellenar bajo la línea
+          }]
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true // El eje Y comienza en 0
+            }
+          },
+          responsive: true, // Hace que la gráfica sea responsive
+          maintainAspectRatio: false // Mantiene la proporción del aspecto según el tamaño dado
+        }
+      });
     },
-    
+    error: function (error) {
+      console.error("Error en la solicitud AJAX: ", error);
+    }
   });
-})
+});
 
 
 

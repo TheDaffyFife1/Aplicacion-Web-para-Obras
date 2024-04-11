@@ -443,7 +443,6 @@ def reporte_asistencia(request):
                 'inicio_semana': inicio_semana,
                 'fin_semana': fin_semana
             }
-            print(context)
 
             return render(request, 'rh/reporte_asistencia.html', context)
 
@@ -536,7 +535,6 @@ def asistencia_obras(request):
             'obra_nombre': obra.nombre,
             'porcentaje_asistencia': int(porcentaje)
         })
-    print(obras_data)
 
     # Retorna la información en formato JSON
     return JsonResponse({'obras': obras_data})
@@ -562,7 +560,8 @@ def obras_con_empleados(request):
         }
         for obra in todas_las_obras
     ]
-
+    print('#'*10)
+    print(data)
     return JsonResponse({'obras': data})
 
 @login_required
@@ -698,7 +697,6 @@ def supervisores_obras(request):
                 'obra': obra.nombre
             })
 
-    print(data)
     return JsonResponse({"data":data}, safe=False)  
 
 
@@ -780,7 +778,6 @@ def summary_week_data_RH(request):
         total_payment_for_week = round(total_payment_for_week, 2)
 
         # Calcular jornadas completas de la semana
-        jornadas_completas_week = sum(1 for _ in valid_attendances_week)
 
         # Contar proyectos y empleados activos
         active_employees_count = Empleado.objects.filter(obra=obra).distinct().count()
@@ -791,7 +788,7 @@ def summary_week_data_RH(request):
             'total_payment_for_week': total_payment_for_week,
 
         }
-        print(data)
+        #print(data)
 
     return JsonResponse(data, safe=False)
 
@@ -838,11 +835,31 @@ def attendance_by_week_project_RH(request):
                         then=1
                     )
                 )
-            ),
-        ).values('nombre', 'full_time', 'part_time', 'not_attended')
-    print(attendance_data)
+            )
+            
+        ).values('full_time', 'part_time', 'not_attended')
+        active_employees_count = Empleado.objects.filter(obra=obra).distinct().count()
 
-    return JsonResponse(list(attendance_data), safe=False)
+    attendance_data = list(attendance_data)
+    key = []
+    values = []
+    for data in attendance_data:
+        key.append(list(data.keys()))
+        values.append(list(data.values()))
+    
+
+    key = [item for sublist in key for item in sublist]
+    values = [item for sublist in values for item in sublist]
+    a = sum(values)
+    faltas = active_employees_count - a
+    values[-1] = faltas 
+
+    key[0] = 'Jornadas completas'
+    key[1] = 'Jornada Incompleta'
+    key[2] = 'Sin Asistencia'
+
+
+    return JsonResponse({'labels': key ,'data':values}, safe=False)
 
 
 
