@@ -230,6 +230,7 @@ def attendance_by_week_project(request):
             )
         ),
     ).values('nombre', 'full_time', 'part_time', 'not_attended')
+    print(attendance_data)
 
     return JsonResponse(list(attendance_data), safe=False)
 
@@ -442,6 +443,7 @@ def reporte_asistencia(request):
                 'inicio_semana': inicio_semana,
                 'fin_semana': fin_semana
             }
+            print(context)
 
             return render(request, 'rh/reporte_asistencia.html', context)
 
@@ -679,7 +681,11 @@ def tabla_pagos(request):
         pagos.append(obra['total_pago'])
 
     return JsonResponse({'labels': obras, 'data': pagos}, safe=False)
-
+    
+@login_required
+def supervisores(request):
+    supervisores = Obra.objects
+    ...
 
 
 #RH
@@ -769,8 +775,7 @@ def summary_week_data_RH(request):
             'obra' : obra.nombre,
             'active_employees': active_employees_count,
             'total_payment_for_week': total_payment_for_week,
-            'weekly_attendance_count': valid_attendances_week.count(),
-            'jornadas_completas_week': jornadas_completas_week,
+
         }
         print(data)
 

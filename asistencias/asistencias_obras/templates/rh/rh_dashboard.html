@@ -58,19 +58,7 @@
 
   <div class="p-4 bg-white shadow-md rounded-lg">                   
 
-  <table id="empleados" class="table table-striped">
-     <thead class="bg-gray-800 text-white">
-         <tr>
-             <th class="w-1/3 text-left py-3 px-4 uppercase font-semibold text-sm">Nombre</th>
-             <th class="w-1/3 text-left py-3 px-4 uppercase font-semibold text-sm">Apellido</th>
-             <th class="w-1/3 text-left py-3 px-4 uppercase font-semibold text-sm">Puesto</th>
-             <th class="w-1/3 text-left py-3 px-4 uppercase font-semibold text-sm">Sueldo</th>
-         </tr>
-     </thead>
-     <tbody>
-         <!--Datos obtenidos con AJAX-->
-     </tbody>
-  </table>
+  
   </div>    
 </div>
 </div>
@@ -162,33 +150,6 @@ $(document).ready(function() {
 
 
 
-
-$(document).ready(function() {
-    // Función para cargar los datos
-    $.ajax({
-        url: '/ajax/empleados_rh/', // Url del endpoint
-        dataType: 'json',
-        success: function(response) {
-            var data = response.data; // Asegúrate de que el backend responde con un objeto que tiene una propiedad "data" que es un arreglo.
-            var tabla = $("#empleados tbody");
-            
-            tabla.empty(); // Limpia el cuerpo de la tabla antes de añadir nuevas filas
-
-            $.each(data, function(i, item) { 
-                var fila = $('<tr>').append(
-                    $('<td>').text(item.nombre),
-                    $('<td>').text(item.apellido),
-                    $('<td>').text(item.puesto),
-                    $('<td>').text(item.sueldo)
-                );
-                tabla.append(fila);
-            });
-        },
-        error: function() {
-            alert("Error al cargar los datos.");
-        }
-    });
-});
 
 
 $(document).ready(function() {
@@ -293,7 +254,7 @@ document.addEventListener("DOMContentLoaded", function () {
             <div class="flex flex-row -mx-3">
               <div class="flex-none w-2/3 max-w-full px-3">
                 <div>
-                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Empleados Laborando</p>
+                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Total Empleados</p>
                   <h5 class="mb-2 font-bold dark:text-white">${data.active_employees}</h5>
                   <p class="mb-0 dark:text-white dark:opacity-60">
                     <span class="text-sm font-bold leading-normal text-emerald-500"></span>
@@ -316,8 +277,8 @@ document.addEventListener("DOMContentLoaded", function () {
             <div class="flex flex-row -mx-3">
               <div class="flex-none w-2/3 max-w-full px-3">
                 <div>
-                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Total a Pagar</p>
-                  <h5 class="mb-2 font-bold dark:text-white">$ ${data.total_payment_for_week}</h5>
+                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Empleados Activos </p>
+                  <h5 class="mb-2 font-bold dark:text-white"> ${data.jornadas_completas_week}</h5>
                   <p class="mb-0 dark:text-white dark:opacity-60">
                     <span class="text-sm font-bold leading-normal text-red-600"></span>
                   </p>
@@ -339,8 +300,8 @@ document.addEventListener("DOMContentLoaded", function () {
             <div class="flex flex-row -mx-3">
               <div class="flex-none w-2/3 max-w-full px-3">
                 <div>
-                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Empleados Activos</p>
-                  <h5 class="mb-2 font-bold dark:text-white">${data.jornadas_completas_week}</h5>
+                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Total a Pagar</p>
+                  <h5 class="mb-2 font-bold dark:text-white">$ ${data.total_payment_for_week}</h5>
                   <p class="mb-0 dark:text-white dark:opacity-60">
                     <span class="text-sm font-bold leading-normal text-emerald-500"></span>
                   </p>
