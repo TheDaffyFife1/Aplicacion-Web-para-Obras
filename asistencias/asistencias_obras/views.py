@@ -229,10 +229,15 @@ def attendance_by_week_project(request):
                 )
             )
         ),
-    ).values('nombre', 'full_time', 'part_time', 'not_attended')
-    print(attendance_data)
+        total_employees=Count('empleado', distinct=True)
+    ).values('nombre', 'full_time', 'part_time', 'not_attended', 'total_employees')
 
-    return JsonResponse(list(attendance_data), safe=False)
+    for obra in attendance_data:
+        obra['not_attended'] = obra['total_employees'] - (obra['full_time'] + obra['part_time'])
+
+    attendance_data = list(attendance_data)
+
+    return JsonResponse(attendance_data, safe=False)
 
 @login_required
 def project_progress(request):
@@ -297,12 +302,32 @@ def summary_week_data(request):
         Q(obra__in=active_projects_id)
     ).distinct().count()
 
+    data = attendance_by_week_project(request)
+    data = json.loads(data.content)
+
+    asistencia = []
+    total = []
+
+    for d in data:
+        asistencia.append(d['full_time']+d['part_time'])
+        total.append(d['total_employees'])
+
+    asistencia = sum(asistencia)
+    total = sum(total)
+
+    porcentaje = (asistencia/total)*100
+
+
+    print(porcentaje)
+
     summary = {
         'active_projects': active_projects_count,
         'active_employees': active_employees_count,
         'total_payment_for_week': total_payment_for_week,
+        'porcentaje': int(porcentaje)
 
     }
+
 
     return JsonResponse({'data':summary}, safe=False)
 
@@ -776,16 +801,27 @@ def summary_week_data_RH(request):
             total_payment_for_week += attendance['daily_payment']
 
         total_payment_for_week = round(total_payment_for_week, 2)
+        active_employees_count = Empleado.objects.filter(obra=obra).distinct().count()
 
-        # Calcular jornadas completas de la semana
+
+
+        data = attendance_by_week_project_RH(request)
+        data = json.loads(data.content)
+
+        data = data['data']
+
+        asistencia = data[0] + data[1]
+        porcentaje = (asistencia/active_employees_count) * 100
+
+
 
         # Contar proyectos y empleados activos
-        active_employees_count = Empleado.objects.filter(obra=obra).distinct().count()
 
         data = {
             'obra' : obra.nombre,
             'active_employees': active_employees_count,
             'total_payment_for_week': total_payment_for_week,
+            'porcentaje': int(porcentaje)
 
         }
         #print(data)
