@@ -50,18 +50,7 @@
 
 
 
-<div class="p-4 rounded-lg">
-    <p class="text-xl pb-3 flex items-center">
-      <i class="fas fa-check mr-3"></i> Empleados de la obra
-  </p>
-<div class="w-full mt-12 bg-white rounded-lg">
 
-  <div class="p-4 bg-white shadow-md rounded-lg">                   
-
-  
-  </div>    
-</div>
-</div>
     <!-- jQuery -->
 <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
 <!-- Bootstrap Bundle JS (incluye Popper) -->
@@ -203,7 +192,6 @@ document.addEventListener("DOMContentLoaded", function () {
       .then((response) => response.json())
 
       .then((data) => {
-        console.log(data);
         const summaryContainer = document.getElementById("summary-info");
         summaryContainer.innerHTML = `
             <div class="w-full px-6 py-6 mx-auto">

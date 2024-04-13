@@ -318,7 +318,6 @@ def summary_week_data(request):
     porcentaje = (asistencia/total)*100
 
 
-    print(porcentaje)
 
     summary = {
         'active_projects': active_projects_count,
@@ -585,8 +584,7 @@ def obras_con_empleados(request):
         }
         for obra in todas_las_obras
     ]
-    print('#'*10)
-    print(data)
+  
     return JsonResponse({'obras': data})
 
 @login_required
@@ -824,7 +822,6 @@ def summary_week_data_RH(request):
             'porcentaje': int(porcentaje)
 
         }
-        #print(data)
 
     return JsonResponse(data, safe=False)
 
