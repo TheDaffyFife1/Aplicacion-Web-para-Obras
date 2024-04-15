@@ -327,7 +327,6 @@ def summary_week_data(request):
 
     }
 
-
     return JsonResponse({'data':summary}, safe=False)
 
 #Funciones para RH
@@ -871,6 +870,7 @@ def attendance_by_week_project_RH(request):
             )
             
         ).values('full_time', 'part_time', 'not_attended')
+
         active_employees_count = Empleado.objects.filter(obra=obra).distinct().count()
 
     attendance_data = list(attendance_data)
