@@ -705,11 +705,12 @@ def tabla_pagos(request):
 @login_required
 def supervisores_obras(request):
     supervisores = UserProfile.objects.all().filter(role=RH_ROLE)
+    print(supervisores.all())
     
     data = []
 
     for supervisor in supervisores:
-        obras = Obra.objects.all().filter(id=supervisor.obra_id)
+        obras = Obra.objects.all().filter(id__in=supervisor.obras.all().values_list('id', flat=True))
         
         for obra in obras:
 
@@ -717,6 +718,7 @@ def supervisores_obras(request):
                 'nombre': supervisor.user.username,
                 'obra': obra.nombre
             })
+    data = sorted(data, key=lambda x: x['obra'])
 
     return JsonResponse({"data":data}, safe=False)  
 
@@ -724,13 +726,13 @@ def supervisores_obras(request):
 #RH
 @login_required
 def progreso(request):
+    obra_id = request.GET.get('obra_id')
     hoy = now()
     user = request.user.userprofile
     data = []
 
     if user.role == RH_ROLE:
-        obra = user.obra_id
-        obra = Obra.objects.get(id=obra)
+        obra = obra_id 
 
         total = (obra.fecha_fin - obra.fecha_inicio).days
         transcurrido = (hoy.date() - obra.fecha_inicio).days
@@ -770,12 +772,12 @@ def empleados_rh(request):
 
 @login_required
 def summary_week_data_RH(request):
+    obra_id = request.GET.get('obra_id')
     user = request.user.userprofile
     data = []
 
     if user.role == RH_ROLE:
-        obra = user.obra_id
-        obra = Obra.objects.get(id=obra)
+        obra = obra_id
         today = timezone.now().date()
         this_week_start = today - timezone.timedelta(days=today.weekday())
         this_week_end = this_week_start + timezone.timedelta(days=6)
@@ -825,11 +827,12 @@ def summary_week_data_RH(request):
 
 @login_required
 def attendance_by_week_project_RH(request):
+    obra_id = request.GET.get('obra_id')
 
     user = request.user.userprofile
 
     if user.role == RH_ROLE:
-        obra = user.obra_id
+        obra = Obra.objects.get(id=obra_id)
         
         # Obtener la fecha de inicio y fin de la semana actual
         today = timezone.now().date()
