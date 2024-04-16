@@ -9,19 +9,22 @@
 <link rel="stylesheet" href="https://cdn.datatables.net/2.0.3/css/dataTables.bootstrap5.css">
 
 </head>
-<h1 class="text-3xl text-black pb-6">Dashboard</h1>
+<div class="flex items-center justify-between">
+  <h1 class="text-3xl text-black">Dashboard</h1>
+
+  <div>
+      <label for="obra-select" class="mr-2">Seleccione una obra:</label>
+      <select id="obra-select" name="obra" onchange="guardarSeleccion()" class="mr-2">
+          {% for obra in obras %}
+          <option value="{{ obra.id }}">{{ obra.nombre }}</option>
+          {% endfor %}
+      </select>
+      <button type="button" class="btn btn-dark" onclick="cargarDatosObra(document.getElementById('obra-select').value)">Cargar Datos</button>
+  </div>
+</div>
 
 <div class="max-w-full px-6 py-6 mx-auto" id="summary-info"></div>
 
-<div>
-  <label for="obra-select">Seleccione una obra:</label>
-  <select id="obra-select" name="obra" onchange="guardarSeleccion()">
-      {% for obra in obras %}
-      <option value="{{ obra.id }}">{{ obra.nombre }}</option>
-      {% endfor %}
-  </select>
-  <button onclick="cargarDatosObra()">Cargar Datos</button>
-</div>
 
 
 <div class="p-4 rounded-lg" >
@@ -80,31 +83,37 @@
 
                 <script>
                   function guardarSeleccion() {
-                      const obraId = document.getElementById('obra-select').value;
+                      var obraId = document.getElementById('obra-select').value;
                       localStorage.setItem('obraId', obraId);
                   }
 
                   function recuperarSeleccion() {
-                      const obraId = localStorage.getItem('obraId');
+                      var obraId = localStorage.getItem('obraId');
                       if (obraId) {
                           document.getElementById('obra-select').value = obraId;
                       }
                   }
                   window.onload = recuperarSeleccion;
-                  
-                  function cargarDatosObra() {
-                      const obraId = document.getElementById('obra-select').value;
-                      console.log(obraId);
+
+                  function cargarDatosObra(obraId) {
+                      console.log('acaaa',obraId);
                       window.location.href = `{% url 'rh_dashboard' %}?obra_id=${obraId}`;
                   }
                   </script>               
 <script>
 $(document).ready(function() {
+  var obra = $('#obra-select').val();
+  console.log('obra',obra);
+  if (!obra) {
+    console.error("No se ha seleccionado una obra.");
+    return;
+  }
   $.ajax({
-    url: '/ajax/attendance_by_week_project_RH/',
+    url: '/ajax/attendance_by_week_project_RH/?obra_id=' + obra,
     type: 'GET',
     dataType: 'json',
     success: function(response) {
+      console.log(obra,'dentro de ajax')
       var data = response.data;
       var labels = response.labels;
       
@@ -151,11 +160,16 @@ $(document).ready(function() {
 
 
 
-
 /* 
+
 $(document).ready(function() {
+  var obra = $('#obra-select').val();
+  if (!obra) {
+    console.error("No se ha seleccionado una obra.");
+    return;
+  }
     $.ajax({
-        url: '/ajax/progreso_obra/',
+        url: '/ajax/progreso_obra/?obra_id=' + obra,
         type: 'GET',
         success: function(response) {
             var data = response.data[0]; // Asumiendo que la respuesta es un array y estamos interesados en el primer objeto
@@ -206,7 +220,9 @@ $(document).ready(function() {
         }
     });
 });
- */
+ */ 
+
+
 document.addEventListener("DOMContentLoaded", function () {
     const csrftoken = document.querySelector("[name=csrf-token]").content;
 
@@ -216,10 +232,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
   function fetchSummaryData(csrftoken) {
-    fetch("/ajax/summary_week_RH/")
+    var obra = $('#obra-select').val();
+    if (!obra) {
+      console.error("No se ha seleccionado una obra.");
+      return;
+    }
+    fetch("/ajax/summary_week_RH/?obra_id=" + obra)
       .then((response) => response.json())
 
       .then((data) => {
+        console.log(obra)
+        
         const summaryContainer = document.getElementById("summary-info");
         summaryContainer.innerHTML = `
             <div class="w-full px-6 py-6 mx-auto">

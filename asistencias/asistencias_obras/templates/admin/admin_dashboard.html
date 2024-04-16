@@ -374,7 +374,7 @@ function crearGrafica(etiquetas, datos, type, nombre, text, esHorizontal = false
       url: "/summary-data/",
       method: "GET",
       data: {
-        'time_range': timeRange || 'weekly',
+        'time_range': timeRange,
         'conjunto': conjunto
       },
       success: function (response) {
