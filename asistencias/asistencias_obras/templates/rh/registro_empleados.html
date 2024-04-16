@@ -5,13 +5,25 @@
 {% block content %}
 <h1 class="text-3xl text-black pb-6">Empleados</h1>
 
+<!-- Selector de obra -->
+<form method="GET" action="" class="mb-4">
+  <label for="obra-select">Seleccione una obra:</label>
+  <select id="obra-select" name="obra_id" onchange="this.form.submit()">
+    <option value="">Seleccionar obra</option>
+    {% for obra in obras %}
+    <option value="{{ obra.id }}" {% if obra.id|stringformat:"s" == request.GET.obra_id %}selected{% endif %}>{{ obra.nombre }}</option>
+    {% endfor %}
+  </select>
+</form>
+
 <div class="flex justify-center">
-  <div class="w-full max-w-lg"> <!-- Establece un ancho máximo para pantallas más grandes -->
+  <div class="w-full max-w-lg">
     <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
       <p class="text-x pb-6 flex items-center">
         <i class="fas fa-list mr-3"></i>Crear Empleado
       </p>
-      <form method="post" class="mb-0 space-y-6 " enctype="multipart/form-data">
+      <!-- Formulario de creación de empleado -->
+      <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         {% for field in form %}
         <div>
@@ -26,7 +38,7 @@
         {% endfor %}
         <div class="flex justify-center">
           <button type="submit" class="px-4 py-1 text-white font-light tracking-wider bg-gray-900 rounded">
-            Guardar Obra
+            Guardar Empleado
           </button>
         </div>
       </form>
@@ -36,14 +48,15 @@
 
 <script type="text/javascript">
     document.addEventListener('DOMContentLoaded', function () {
-        const sueldosBase = JSON.parse('{{ sueldos_base|safe }}');
-        const puestoSelect = document.getElementById('id_puesto');
-        const sueldoInput = document.getElementById('id_sueldo');
+    const sueldosBase = JSON.parse('{{ sueldos_base|safe }}');  // Asegúrate de que 'sueldos_base' esté correctamente formateado como JSON.
+    const puestoSelect = document.getElementById('id_puesto'); // Asegúrate de que 'id_puesto' es el ID correcto del elemento select de puestos.
+    const sueldoInput = document.getElementById('id_sueldo');
 
-        puestoSelect.addEventListener('change', function () {
-            const sueldoBase = sueldosBase[this.value];
-            sueldoInput.value = sueldoBase !== undefined ? sueldoBase : '';
-        });
+    puestoSelect.addEventListener('change', function () {
+        const sueldoBase = sueldosBase[this.value];  // Obtiene el sueldo base usando el value del puesto seleccionado.
+        sueldoInput.value = sueldoBase ? sueldoBase : '';  // Actualiza el campo de sueldo. Si no hay sueldo base, limpia el campo.
     });
+});
+
 </script>
-{% endblock %}  
+{% endblock %}

@@ -13,7 +13,15 @@
 
 <div class="max-w-full px-6 py-6 mx-auto" id="summary-info"></div>
 
-
+<div>
+  <label for="obra-select">Seleccione una obra:</label>
+  <select id="obra-select" name="obra">
+      {% for obra in obras %}
+      <option value="{{ obra.id }}">{{ obra.nombre }}</option>
+      {% endfor %}
+  </select>
+  <button onclick="cargarDatosObra()">Cargar Datos</button>
+</div>
 
 
 <div class="p-4 rounded-lg" >
@@ -70,6 +78,12 @@
                 <!-- ChartJS -->
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js" integrity="sha256-R4pqcOYV8lt7snxMQO/HSbVCFRPMdrhAFMH+vr9giYI=" crossorigin="anonymous"></script>
 
+                <script>
+                  function cargarDatosObra() {
+                      const obraId = document.getElementById('obra-select').value;
+                      window.location.href = `{% url 'rh_dashboard' %}?obra_id=${obraId}`;
+                  }
+                  </script>               
 <script>
 $(document).ready(function() {
   $.ajax({

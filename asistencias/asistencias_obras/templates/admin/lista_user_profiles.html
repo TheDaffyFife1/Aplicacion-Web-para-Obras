@@ -23,7 +23,15 @@
                 <tr>
                     <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">{{ profile.user.username }}</td>
                     <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">{{ profile.get_role_display }}</td>
-                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">{{ profile.obra.nombre|default:"N/A" }}</td>
+                    <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
+                        {% if profile.obras.all %}
+                            {% for obra in profile.obras.all %}
+                                {{ obra.nombre }}{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>                    
                     <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                         <!-- Asumiendo que tienes una vista para asignar/editar la obra de un user profile -->
                         <a href="{% url 'asignar_obra_a_usuario' profile.user.id %}" class="boton-accion  boton-activar boton-desactivar">Asignar/Editar Obra</a>

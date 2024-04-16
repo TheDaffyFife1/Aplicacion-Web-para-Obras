@@ -118,7 +118,6 @@ class EmpleadoEliminado(models.Model):
         verbose_name = "empleado eliminado"
         verbose_name_plural = "empleados eliminados"
 
-#Modelo de Rol del usuario
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
     role = models.CharField(max_length=50, choices=[
@@ -126,7 +125,7 @@ class UserProfile(models.Model):
         (RH_ROLE, 'RH'),
         (USER_ROLE, 'User'),
     ])
-    obra = models.ForeignKey(Obra, on_delete=models.CASCADE, verbose_name="Obra", null=True, blank=True)
+    obras = models.ManyToManyField(Obra, verbose_name="Obras", blank=True)  # Usamos ManyToManyField aquí
 
     def __str__(self):
         return self.user.username

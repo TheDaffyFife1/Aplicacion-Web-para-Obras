@@ -8,7 +8,7 @@ from django.contrib.auth.decorators import login_required
 from .RegistrationForm import RegistrationForm
 from django.contrib.auth import login
 from django.db import IntegrityError
-from django.http import HttpResponseForbidden, HttpResponseRedirect,JsonResponse
+from django.http import HttpResponseForbidden, HttpResponseRedirect,JsonResponse,HttpResponseBadRequest
 from .RegistrationObra import ObraForm
 from django.urls import reverse
 from .FormAsignarObra import AsignarObraForm
@@ -28,6 +28,7 @@ from django.db.models.functions import Cast, Coalesce, Least
 from django.db.models import Count, Case, When, DecimalField
 from django.utils.timezone import now
 from django.db.models import F, FloatField, ExpressionWrapper, Case, When, Value, IntegerField
+from django.views.decorators.cache import never_cache
 
 
 @login_required
@@ -162,19 +163,19 @@ def editar_obra(request, obra_id):
 def asignar_obra_a_usuario(request, user_profile_id):
     if request.user.userprofile.role != ADMIN_ROLE:
         return HttpResponseForbidden("No tienes permiso para ver esta página.")
+    
     user_profile = get_object_or_404(UserProfile, pk=user_profile_id)
+    
     if request.method == 'POST':
-        form = AsignarObraForm(request.POST, instance=user_profile)
+        form = AsignarObraForm(request.POST, instance=user_profile, user_profile=user_profile)
         if form.is_valid():
-            # Asegúrate de que el usuario es RH o User antes de guardar
-            if user_profile.role in [RH_ROLE, USER_ROLE]:
-                form.save()
-                return redirect('lista_user_profiles')
-            else:
-                # Manejar el caso en que el rol no es permitido para la asignación
-                pass  # Puedes redirigir o mostrar un mensaje de error
+            form.save()
+            return redirect('lista_user_profiles')
+        else:
+            # Si el formulario no es válido, se renderiza de nuevo con errores.
+            return render(request, 'admin/asignar_obra.html', {'form': form, 'user_profile': user_profile})
     else:
-        form = AsignarObraForm(instance=user_profile)
+        form = AsignarObraForm(instance=user_profile, user_profile=user_profile)
 
     return render(request, 'admin/asignar_obra.html', {'form': form, 'user_profile': user_profile})
 
@@ -329,20 +330,25 @@ def summary_week_data(request):
 
     return JsonResponse({'data':summary}, safe=False)
 
-#Funciones para RH
+#RH
 @login_required
 def rh_dashboard(request):
     user_profile = request.user.userprofile
     if user_profile.role == RH_ROLE:
-        # Asumiendo que 'obra_id' es un campo en el modelo de UserProfile para el ID de la obra.
-        obra_id = user_profile.obra_id
-        if obra_id:
-            obra = get_object_or_404(Obra, id=obra_id)
-            # Puedes pasar 'obra' al contexto si la plantilla necesita mostrar información sobre la obra
-            return render(request, 'rh/rh_dashboard.html', {'obra': obra})
+        obras = user_profile.obras.all()
+        if obras.exists():
+            selected_obra_id = request.GET.get('obra_id')
+            if selected_obra_id:
+                try:
+                    selected_obra = obras.get(id=selected_obra_id)
+                    # Aquí puedes procesar la información específica de la obra seleccionada
+                    # y luego pasar esos datos al template
+                except obras.model.DoesNotExist:
+                    return HttpResponseBadRequest("Obra no encontrada.")
+            # Si no se especifica obra_id, se pueden mostrar todas o ninguna
+            return render(request, 'rh/rh_dashboard.html', {'obras': obras})
         else:
-            # Manejar el caso de que no haya un ID de obra asociado
-            return HttpResponseForbidden("Este usuario de RH no tiene una obra asignada.")
+            return HttpResponseForbidden("Este usuario de RH no tiene obras asignadas.")
     else:
         return HttpResponseForbidden("No tienes permiso para ver esta página.")
 
@@ -350,16 +356,18 @@ def rh_dashboard(request):
 def lista_empleados(request):
     user_profile = request.user.userprofile
     if user_profile.role == RH_ROLE:
-        # Asumiendo que 'obra_id' es un campo en el modelo de UserProfile para el ID de la obra.
-        obra_id = user_profile.obra_id
-        if obra_id:
-            obra = get_object_or_404(Obra, id=obra_id)
-            # Puedes pasar 'obra' al contexto si la plantilla necesita mostrar información sobre la obra
-            empleados = Empleado.objects.filter(obra_id=obra)
-            return render(request, 'rh/lista_empleados.html', {'empleados': empleados, 'obra': obra})
+        obras = user_profile.obras.all()
+        if obras.exists():
+            obra_id = request.GET.get('obra_id')
+            if obra_id:
+                obra = get_object_or_404(Obra, id=obra_id)
+                empleados = Empleado.objects.filter(obra=obra)
+                return render(request, 'rh/lista_empleados.html', {'empleados': empleados, 'obra': obra, 'obras': obras})
+            else:
+                # Si no se especifica obra_id, mostrar todas las obras pero sin seleccionar ninguna específicamente
+                return render(request, 'rh/lista_empleados.html', {'obras': obras})
         else:
-            # Manejar el caso de que no haya un ID de obra asociado
-            return HttpResponseForbidden("Este usuario de RH no tiene una obra asignada.")
+            return HttpResponseForbidden("Este usuario de RH no tiene obras asignadas.")
     else:
         return HttpResponseForbidden("No tienes permiso para ver esta página.")
 
@@ -367,33 +375,38 @@ def lista_empleados(request):
 def crear_empleado(request):
     user_profile = request.user.userprofile
     if user_profile.role == RH_ROLE:
-        obra_id = user_profile.obra_id
-        if obra_id:
-            if request.method == 'POST':
-                form = EmpleadoForm(request.POST, request.FILES)
-                if form.is_valid():
-                    empleado = form.save(commit=False)
-                    # Establece la obra al empleado antes de guardar
-                    empleado.obra_id = obra_id
-                    empleado.save()
-                    return redirect('lista_empleados')
-            else:
-                # Inicializa el formulario con la obra del usuario RH
-                form = EmpleadoForm(initial={'obra': obra_id})
-                # Oculta el campo 'obra' ya que no queremos que sea editable
-                form.fields['obra'].widget = forms.HiddenInput()
-            
-            sueldos_base = {str(puesto.id): str(puesto.sueldo_base) for puesto in Puesto.objects.all()}
-            sueldos_base_json = json.dumps(sueldos_base)
-            
-            return render(request, 'rh/registro_empleados.html', {
-                'form': form,
-                'sueldos_base': sueldos_base_json,  # Pass 'sueldos_base' as JSON to the template
-            })
+        obras = user_profile.obras.all()
+        if not obras.exists():
+            return HttpResponseForbidden("Este usuario de RH no tiene obras asignadas.")
+
+        obra_id = request.GET.get('obra_id')
+        obra = get_object_or_404(Obra, id=obra_id) if obra_id else None
+
+        if request.method == 'POST' and obra:
+            form = EmpleadoForm(request.POST, request.FILES)
+            if form.is_valid():
+                empleado = form.save(commit=False)
+                empleado.obra = obra  # Directly assign the obra object
+                empleado.save()
+                return redirect(f'/empleados    ?obra_id={obra_id}')
         else:
-            return HttpResponseForbidden("Este usuario de RH no tiene una obra asignada.")
+            # Si no hay un obra_id en GET o no estamos en POST, mostramos un formulario vacío o preseleccionado
+            initial_data = {'obra': obra} if obra else {}
+            form = EmpleadoForm(initial=initial_data)
+            if obra:
+                form.fields['obra'].widget = forms.HiddenInput()
+
+        sueldos_base = {str(puesto.id): str(puesto.sueldo_base) for puesto in Puesto.objects.all()}
+        sueldos_base_json = json.dumps(sueldos_base)
+
+        return render(request, 'rh/registro_empleados.html', {
+            'form': form,
+            'sueldos_base': sueldos_base_json,
+            'obras': obras,
+            'selected_obra': obra
+        })
     else:
-        return HttpResponseForbidden("No tienes permiso para ver esta página.") 
+        return HttpResponseForbidden("No tienes permiso para ver esta página.")
     
 @login_required
 def editar_empleado(request, empleado_id):
@@ -411,84 +424,70 @@ def editar_empleado(request, empleado_id):
     return render(request, 'rh/editar_empleado.html', {'form': form, 'empleado': empleado})
 
 @login_required
+@never_cache  # Asegura que las respuestas de esta vista no sean almacenadas en cache.
 def reporte_asistencia(request):
     user_profile = request.user.userprofile
     if user_profile.role == RH_ROLE:
-        obra_id = user_profile.obra_id
-        if obra_id:
-            obra = get_object_or_404(Obra, id=obra_id)
-            # Filtrar empleados que pertenecen a la obra específica
-            empleados = Empleado.objects.filter(obra=obra)
+        obras = user_profile.obras.all()
+        if obras.exists():  # Verificar si el usuario tiene obras asignadas
+            obra_id = request.GET.get('obra_id')
+            if obra_id:
+                obra = get_object_or_404(Obra, id=obra_id)
+                empleados = Empleado.objects.filter(obra=obra)
 
-            hoy = timezone.localtime().date()
-            inicio_semana = hoy - timedelta(days=hoy.weekday())  # Lunes
-            fin_semana = inicio_semana + timedelta(days=5)  # Sábado
-            
-            # Asegurarse de que las asistencias pertenecen a los empleados de la obra específica
-            asistencias_semana_actual = Asistencia.objects.filter(
-                empleado__obra=obra,
-                fecha__range=(inicio_semana, fin_semana)
-            ).select_related('empleado').order_by('fecha')
+                hoy = timezone.localtime().date()
+                inicio_semana = hoy - timedelta(days=hoy.weekday())  # Lunes
+                fin_semana = inicio_semana + timedelta(days=5)  # Sábado
 
-            # Inicializar y llenar el contexto de empleados con datos de asistencia
-            empleados_context = {empleado.id: {
-                'nombre': empleado.nombre + " " + empleado.apellido,
-                'foto_url': empleado.fotografia.url if empleado.fotografia else None,
-                'sueldo_total': empleado.sueldo,
-                'asistencias': {dia: {'entrada': None, 'salida': None, 'foto_dia': None, 'sueldo_diario': 0} for dia in range(6)}
-            } for empleado in empleados}
+                asistencias_semana_actual = Asistencia.objects.filter(
+                    empleado__obra=obra,
+                    fecha__range=(inicio_semana, fin_semana)
+                ).select_related('empleado').order_by('fecha')
 
-            for asistencia in asistencias_semana_actual:
-                dia_semana = asistencia.fecha.weekday()
-                empleado_context = empleados_context.get(asistencia.empleado_id)
-                if empleado_context:  # Verifica si el empleado está en la obra antes de proceder
-                    empleado_context['asistencias'][dia_semana] = {
-                        'entrada': asistencia.entrada,
-                        'salida': asistencia.salida,
-                        'foto_dia': asistencia.foto.url if asistencia.foto else None
-                    }
+                empleados_context = {empleado.id: {
+                    'nombre': empleado.nombre + " " + empleado.apellido,
+                    'foto_url': empleado.fotografia.url if empleado.fotografia else None,
+                    'sueldo_total': empleado.sueldo,
+                    'asistencias': {dia: {'entrada': None, 'salida': None, 'foto_dia': None, 'sueldo_diario': 0} for dia in range(6)}
+                } for empleado in empleados}
 
-            # Calcular el sueldo diario y total semanal para cada empleado
-            for datos in empleados_context.values():
-                sueldo_diario_completo = datos['sueldo_total'] / 6
-                total_semanal = 0
-                for asistencia in datos['asistencias'].values():
-                    if asistencia['entrada'] and asistencia['salida']:
-                        asistencia['sueldo_diario'] = sueldo_diario_completo
-                    elif asistencia['entrada'] or asistencia['salida']:
-                        asistencia['sueldo_diario'] = sueldo_diario_completo / 2
-                    total_semanal += asistencia.get('sueldo_diario', 0)
-                datos['total_semanal'] = total_semanal
+                for asistencia in asistencias_semana_actual:
+                    dia_semana = asistencia.fecha.weekday()
+                    empleado_context = empleados_context.get(asistencia.empleado_id)
+                    if empleado_context:  # Verifica si el empleado está en la obra antes de proceder
+                        empleado_context['asistencias'][dia_semana] = {
+                            'entrada': asistencia.entrada,
+                            'salida': asistencia.salida,
+                            'foto_dia': asistencia.foto.url if asistencia.foto else None
+                        }
 
-            context = {
-                'empleados_context': empleados_context.values(),
-                'obra': obra,  # Opcional: pasar la obra al contexto si se necesita en la plantilla
-                'inicio_semana': inicio_semana,
-                'fin_semana': fin_semana
-            }
+                for datos in empleados_context.values():
+                    sueldo_diario_completo = datos['sueldo_total'] / 6
+                    total_semanal = 0
+                    for asistencia in datos['asistencias'].values():
+                        if asistencia['entrada'] and asistencia['salida']:
+                            asistencia['sueldo_diario'] = sueldo_diario_completo
+                        elif asistencia['entrada'] or asistencia['salida']:
+                            asistencia['sueldo_diario'] = sueldo_diario_completo / 2
+                        total_semanal += asistencia.get('sueldo_diario', 0)
+                    datos['total_semanal'] = total_semanal
 
-            return render(request, 'rh/reporte_asistencia.html', context)
+                context = {
+                    'empleados_context': empleados_context.values(),
+                    'obra': obra,
+                    'inicio_semana': inicio_semana,
+                    'fin_semana': fin_semana
+                }
 
+                return render(request, 'rh/reporte_asistencia.html', context)
+            else:
+                # Si no se especifica obra_id, mostrar todas las obras pero sin seleccionar ninguna específicamente
+                return render(request, 'rh/reporte_asistencia.html', {'obras': obras})
         else:
-            return HttpResponseForbidden("Este usuario de RH no tiene una obra asignada.")
+            return HttpResponseForbidden("Este usuario de RH no tiene obras asignadas.")
     else:
         return HttpResponseForbidden("No tienes permiso para ver esta página.")
 
-#Funciones para Supervisor
-@login_required
-def user_asistencia(request):
-    user_profile = request.user.userprofile
-    if user_profile.role == USER_ROLE:
-        obra_id = user_profile.obra_id
-        if obra_id:
-            obra = get_object_or_404(Obra, id=obra_id)
-            # La lógica para mostrar la asistencia del usuario en la obra
-            return render(request,'supervisor/user_asistencia.html', {'obra': obra})
-        else:
-            # Manejar el caso de que no haya un ID de obra asociado
-            return HttpResponseForbidden("Este usuario no tiene una obra asignada.")
-    else:
-        return HttpResponseForbidden("No tienes permiso para ver esta página.")
 
 
 @login_required
@@ -895,6 +894,27 @@ def attendance_by_week_project_RH(request):
     return JsonResponse({'labels': key ,'data':values}, safe=False)
 
 
+#Funciones para Supervisor
+@login_required
+def user_asistencia(request):
+    user_profile = request.user.userprofile
+    if user_profile.role == USER_ROLE:
+        obras = user_profile.obras.all()
+        if obras.exists():
+            selected_obra_id = request.GET.get('obra_id')
+            if selected_obra_id:
+                try:
+                    selected_obra = obras.get(id=selected_obra_id)
+                    # Aquí puedes procesar la información específica de la obra seleccionada
+                    # y luego pasar esos datos al template
+                except obras.model.DoesNotExist:
+                    return HttpResponseBadRequest("Obra no encontrada.")
+            return render(request,'supervisor/user_asistencia.html', {'obra': obras})
+        else:
+            # Manejar el caso de que no haya un ID de obra asociado
+            return HttpResponseForbidden("Este usuario no tiene una obra asignada.")
+    else:
+        return HttpResponseForbidden("No tienes permiso para ver esta página.")
 
     
 

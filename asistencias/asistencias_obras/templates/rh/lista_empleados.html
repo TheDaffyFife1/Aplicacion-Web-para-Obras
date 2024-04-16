@@ -2,7 +2,19 @@
 
 {% block content %}
 <h1 class="text-3xl text-black pb-6">Obras</h1>
+<form method="GET" action="">
+    <label for="obra-select">Seleccione una obra:</label>
+    <select id="obra-select" name="obra_id" onchange="this.form.submit()">
+        <!-- Opción predeterminada para cuando no se ha seleccionado una obra -->
+        <option value="">Seleccionar obra</option>
+        {% for obra in obras %}
+        <option value="{{ obra.id }}" {% if obra.id == request.GET.obra_id %}selected{% endif %}>{{ obra.nombre }}</option>
+        {% endfor %}
+    </select>
+    <noscript><input type="submit" value="Cargar"></noscript>
+</form>
 
+  
 <div class="w-full mt-6">
     <p class="text-xl pb-3 flex items-center">
         <i class="fas fa-list mr-3"></i> Empleados
