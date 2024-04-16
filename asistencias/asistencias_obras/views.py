@@ -286,7 +286,7 @@ def summary_week_data(request):
         empleado__obra__fecha_inicio__lte=today,
         empleado__obra__fecha_fin__gte=today
     ).values('empleado', 'fecha').annotate(daily_payment=Sum(F('empleado__sueldo')/6)).order_by('empleado')
-
+    print(list(valid_attendances_week))
     # Inicializar el total del pago para la semana
     total_payment_for_week = sum(attendance['daily_payment'] for attendance in valid_attendances_week)
     total_payment_for_week = round(total_payment_for_week, 2)
@@ -705,7 +705,6 @@ def tabla_pagos(request):
 @login_required
 def supervisores_obras(request):
     supervisores = UserProfile.objects.all().filter(role=RH_ROLE)
-    print(supervisores.all())
     
     data = []
 
@@ -726,16 +725,20 @@ def supervisores_obras(request):
 #RH
 @login_required
 def progreso(request):
-    obra_id = request.GET.get('obra_id')
+    obra_id = request.GET.get('id')
     hoy = now()
     user = request.user.userprofile
     data = []
 
+    print('id: ',request.GET.get('id'))
     if user.role == RH_ROLE:
-        obra = obra_id 
-
+        obra = Obra.objects.filter(id=obra_id)
+        
+        print(obra)
         total = (obra.fecha_fin - obra.fecha_inicio).days
+        
         transcurrido = (hoy.date() - obra.fecha_inicio).days
+
         if transcurrido > 0:
             porcenaje = (transcurrido / total) * 100 if total else 0
             if porcenaje > 100:
@@ -777,7 +780,8 @@ def summary_week_data_RH(request):
     data = []
 
     if user.role == RH_ROLE:
-        obra = obra_id
+        obra = get_object_or_404(Obra, id=obra_id)
+        print(obra) 
         today = timezone.now().date()
         this_week_start = today - timezone.timedelta(days=today.weekday())
         this_week_end = this_week_start + timezone.timedelta(days=6)
@@ -799,7 +803,7 @@ def summary_week_data_RH(request):
             total_payment_for_week += attendance['daily_payment']
 
         total_payment_for_week = round(total_payment_for_week, 2)
-        active_employees_count = Empleado.objects.filter(obra=obra).distinct().count()
+        active_employees_count = Empleado.objects.filter(obra=obra_id).distinct().count()
 
 
 
@@ -827,12 +831,13 @@ def summary_week_data_RH(request):
 
 @login_required
 def attendance_by_week_project_RH(request):
-    obra_id = request.GET.get('obra_id')
+    obra_id = request.GET.get('obra_id', None)
+    print(obra_id)
 
     user = request.user.userprofile
-
+   
     if user.role == RH_ROLE:
-        obra = Obra.objects.get(id=obra_id)
+        #obra = get_object_or_404(Obra, id=obra_id)
         
         # Obtener la fecha de inicio y fin de la semana actual
         today = timezone.now().date()
@@ -840,7 +845,7 @@ def attendance_by_week_project_RH(request):
         week_end = week_start + timezone.timedelta(days=6)  # Domingo
 
         # Ajustar la consulta para calcular asistencia semanal por proyecto
-        attendance_data = Obra.objects.filter(id=obra).annotate(
+        attendance_data = Obra.objects.filter(id=obra_id).annotate(
             full_time=Count(
                 Case(
                     When(
@@ -873,7 +878,7 @@ def attendance_by_week_project_RH(request):
             
         ).values('full_time', 'part_time', 'not_attended')
 
-        active_employees_count = Empleado.objects.filter(obra=obra).distinct().count()
+        active_employees_count = Empleado.objects.filter(obra=obra_id).distinct().count()
 
     attendance_data = list(attendance_data)
     key = []
@@ -882,11 +887,13 @@ def attendance_by_week_project_RH(request):
         key.append(list(data.keys()))
         values.append(list(data.values()))
     
+    print(attendance_data)
 
     key = [item for sublist in key for item in sublist]
     values = [item for sublist in values for item in sublist]
     a = sum(values)
     faltas = active_employees_count - a
+    print(values)
     values[-1] = faltas 
 
     key[0] = 'Jornadas completas'

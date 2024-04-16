@@ -55,36 +55,26 @@
    
 
     </style>
-<nav class="navbar navbar-expand-lg bg-white rounded-lg" id="navbar">
-  <div class="container-fluid">
-    <button class="navbar-toggler " type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item">
-          <a class="nav-link" aria-current="page"  data-value="weekly">Semanal</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" data-value="monthly">Mensual</a>
-        </li>
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            Conjunto de Semanas 
-          </a>
-          <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-            <li><a class="dropdown-item" data-value="3">2 Semanas</a></li>
-            <li><a class="dropdown-item" data-value="4">3 Semanas</a></li>
-          </ul>
-        </li>
-      </ul>
-    </div>
-  </div>
-</nav>
+
 </head>
 
 <div>
-<h1 class="text-3xl text-black pb-6">Dashboard</h1>
+  <div class="d-flex align-items-center justify-content-between">
+    <h1 class="text-3xl text-black pb-6">Dashboard</h1>
+    <div class="btn-group" role="group" aria-label="Dashboard buttons">
+      <button type="button" class="btn btn-secondary" data-value="weekly">Semanal</button>
+      <button type="button" class="btn btn-secondary" data-value="monthly">Mensual</button>
+      <div class="btn-group" role="group">
+        <button id="conjunto" type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+          Conjunto de Semanas
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="btnGroupDrop1">
+          <li><button class="dropdown-item" data-value="3">2 Semanas</button></li>
+          <li><button class="dropdown-item" data-value="4">3 Semanas</button></li>
+        </ul>
+      </div>
+    </div>
+  </div>
 <div class="max-w-full px-6 py-6 mx-auto" id="summary-info"></div>
 
 <div class="p-4 rounded-lg">
@@ -360,6 +350,22 @@ function crearGrafica(etiquetas, datos, type, nombre, text, esHorizontal = false
 
     fetchSummaryData(csrftoken);
     fetchAttendanceByProject(csrftoken);
+
+    // Controlador para botones de tiempo
+    document.querySelectorAll('.btn[data-value]').forEach(button => {
+      button.addEventListener('click', function() {
+        const timeRange = this.getAttribute('data-value');
+        fetchSummaryData(csrftoken, timeRange);
+      });
+    });
+
+    // Controlador para botones de conjunto
+    document.querySelectorAll('.dropdown-item[data-value]').forEach(button => {
+      button.addEventListener('click', function() {
+        const conjunto = this.getAttribute('data-value');
+        fetchSummaryData(csrftoken, null, conjunto);
+      });
+    });
   });
 
   function fetchSummaryData(csrftoken, timeRange, conjunto) {
@@ -368,10 +374,11 @@ function crearGrafica(etiquetas, datos, type, nombre, text, esHorizontal = false
       url: "/summary-data/",
       method: "GET",
       data: {
-        'time_range': timeRange,
+        'time_range': timeRange || 'weekly',
         'conjunto': conjunto
       },
       success: function (response) {
+        
         data = response.data;
         const summaryContainer = document.getElementById("summary-info");
         summaryContainer.innerHTML = `
@@ -486,6 +493,8 @@ function crearGrafica(etiquetas, datos, type, nombre, text, esHorizontal = false
       })
       .catch((error) => console.error("Error:", error));
   }
+
+
 
   function fetchAttendanceByProject(csrftoken) {
     fetch("/attendance-by-project/")

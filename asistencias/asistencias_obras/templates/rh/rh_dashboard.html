@@ -15,7 +15,7 @@
 
 <div>
   <label for="obra-select">Seleccione una obra:</label>
-  <select id="obra-select" name="obra">
+  <select id="obra-select" name="obra" onchange="guardarSeleccion()">
       {% for obra in obras %}
       <option value="{{ obra.id }}">{{ obra.nombre }}</option>
       {% endfor %}
@@ -79,8 +79,22 @@
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js" integrity="sha256-R4pqcOYV8lt7snxMQO/HSbVCFRPMdrhAFMH+vr9giYI=" crossorigin="anonymous"></script>
 
                 <script>
+                  function guardarSeleccion() {
+                      const obraId = document.getElementById('obra-select').value;
+                      localStorage.setItem('obraId', obraId);
+                  }
+
+                  function recuperarSeleccion() {
+                      const obraId = localStorage.getItem('obraId');
+                      if (obraId) {
+                          document.getElementById('obra-select').value = obraId;
+                      }
+                  }
+                  window.onload = recuperarSeleccion;
+                  
                   function cargarDatosObra() {
                       const obraId = document.getElementById('obra-select').value;
+                      console.log(obraId);
                       window.location.href = `{% url 'rh_dashboard' %}?obra_id=${obraId}`;
                   }
                   </script>               
@@ -130,7 +144,7 @@ $(document).ready(function() {
     },
     error: function(error) {
       console.error("Error al cargar los datos: ", error);
-      alert("Error al cargar los datos.");
+      alert("Error al cargar los datos.", error);
     }
   });
 });
@@ -138,7 +152,7 @@ $(document).ready(function() {
 
 
 
-
+/* 
 $(document).ready(function() {
     $.ajax({
         url: '/ajax/progreso_obra/',
@@ -192,7 +206,7 @@ $(document).ready(function() {
         }
     });
 });
-
+ */
 document.addEventListener("DOMContentLoaded", function () {
     const csrftoken = document.querySelector("[name=csrf-token]").content;
 
