@@ -14,16 +14,23 @@
       <form method="post" class="mb-0 space-y-6">
         {% csrf_token %}
         {% for field in form %}
-        <div>
-          <label for="{{ field.id_for_label }}" class="block text-gray-700 text-sm font-bold mb-2">
-            {{ field.label }}
-          </label>
+      <div>
+        <label for="{{ field.id_for_label }}" class="block text-gray-700 text-sm font-bold mb-2">
+          {{ field.label }}
+        </label>
+        {% if field.name == 'obras' %}
+          {{ field }}
+        {% else %}
           {% render_field field class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" %}
-          {% if field.help_text %}
-          <p class="text-xs italic text-gray-600">{{ field.help_text }}</p>
-          {% endif %}
-        </div>
+        {% endif %}
+        {% for error in field.errors %}
+          <p class="text-red-500 text-xs italic">{{ error }}</p>
         {% endfor %}
+        {% if field.help_text %}
+          <p class="text-xs italic text-gray-600">{{ field.help_text }}</p>
+        {% endif %}
+      </div>
+      {% endfor %}
         <div class="flex justify-center">
           <button type="submit" class="px-4 py-1 text-white font-light tracking-wider bg-gray-900 rounded">
             Asignar Obra
