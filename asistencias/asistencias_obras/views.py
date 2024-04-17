@@ -318,7 +318,9 @@ def summary_week_data(request):
 
     return JsonResponse({'data': summary}, safe=False)
     
-#RH
+# ===================================================Aplicacion de RH ===================================================
+
+# Dise;o de RH Dashboard
 @login_required
 def rh_dashboard(request):
     user_profile = request.user.userprofile
@@ -580,6 +582,26 @@ def progreso_obras_indivual(request):
     return JsonResponse({'labels': labels, 'data': data, 'resto': resto})
 
 
+
+@login_required
+def supervisores_obras(request):
+    supervisores = UserProfile.objects.all().filter(role=RH_ROLE)
+    
+    data = []
+
+    for supervisor in supervisores:
+        obras = Obra.objects.all().filter(id__in=supervisor.obras.all().values_list('id', flat=True))
+        
+        for obra in obras:
+
+            data.append({
+                'nombre': supervisor.user.username,
+                'obra': obra.nombre
+            })
+    data = sorted(data, key=lambda x: x['obra'])
+
+    return JsonResponse({"data":data}, safe=False)  
+
 @login_required
 def tabla_pagos(request):
     time_range = request.GET.get('time_range', 'weekly')
@@ -674,27 +696,6 @@ def tabla_pagos(request):
 
     return JsonResponse({'labels': obras, 'data': pagos}, safe=False)
 
-@login_required
-def supervisores_obras(request):
-    supervisores = UserProfile.objects.all().filter(role=RH_ROLE)
-    
-    data = []
-
-    for supervisor in supervisores:
-        obras = Obra.objects.all().filter(id__in=supervisor.obras.all().values_list('id', flat=True))
-        
-        for obra in obras:
-
-            data.append({
-                'nombre': supervisor.user.username,
-                'obra': obra.nombre
-            })
-    data = sorted(data, key=lambda x: x['obra'])
-
-    return JsonResponse({"data":data}, safe=False)  
-
-
-#RH
 @login_required
 def progreso(request):
     obra_id = request.GET.get('id')
@@ -870,7 +871,7 @@ def attendance_by_week_project_RH(request):
     return JsonResponse({'labels': key ,'data':values}, safe=False)
 
 
-#Funciones para Supervisor
+# =============================================== Funciones para Supervisor =====================================================
 @login_required
 def user_asistencia(request):
     user_profile = request.user.userprofile
