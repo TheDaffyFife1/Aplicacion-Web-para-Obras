@@ -6,6 +6,8 @@ from io import BytesIO
 import qrcode
 from django.core.files.base import ContentFile
 from django.utils import timezone
+from datetime import timedelta
+
 # Create your models here.
 
 #Modelo Puesto
@@ -34,22 +36,24 @@ class Obra(models.Model):
     @property
     def porcentaje_tiempo_transcurrido(self):
         hoy = timezone.now().date()
+        if not self.fecha_inicio or not self.fecha_fin:
+            return 0
         total_dias = (self.fecha_fin - self.fecha_inicio).days
         dias_transcurridos = (hoy - self.fecha_inicio).days
-
-        # Si hoy es anterior a la fecha de inicio, o el proyecto no tiene fechas definidas
         if hoy < self.fecha_inicio or total_dias <= 0:
             return 0
-
-        # Si hoy es posterior a la fecha de fin
         if hoy > self.fecha_fin:
             return 100
-
         return (dias_transcurridos / total_dias) * 100
-    
+
+    def save(self, *args, **kwargs):
+        if self.fecha_fin and timezone.now().date() > (self.fecha_fin + timedelta(days=1)):
+            self.activa = False
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.nombre
-        
+
     class Meta:
         verbose_name = "obra"
         verbose_name_plural = "obras"
