@@ -29,6 +29,7 @@ from django.db.models import Count, Case, When, DecimalField
 from django.utils.timezone import now
 from django.db.models import F, FloatField, ExpressionWrapper, Case, When, Value, IntegerField
 from django.views.decorators.cache import never_cache
+from calendar import monthrange
 
 
 @login_required
@@ -46,7 +47,7 @@ def accesos(request):
         # Puedes redirigir a una página de error o a la página de inicio, etc.
         return redirect('default_page')
 
-#Funciones para administrador  
+# =========================================================== Funciones para administrador ============================================ 
 @login_required
 def admin_dashboard(request):
     if request.user.userprofile.role != ADMIN_ROLE:
@@ -190,16 +191,27 @@ def lista_user_profiles(request):
 
 @login_required
 def attendance_by_week_project(request):
-    # Obtener la fecha de inicio y fin de la semana actual
+    # Leer parámetros de la petición
+    time_range = request.GET.get('time_range', 'weekly')
+    conjunto = int(request.GET.get('conjunto', 1))
     today = timezone.now().date()
-    week_start = today - timezone.timedelta(days=today.weekday())  # Lunes
-    week_end = week_start + timezone.timedelta(days=6)  # Domingo
+
+    if time_range == 'weekly':
+        week_start = today - timedelta(days=today.weekday() + 7 * (conjunto - 1))
+        week_end = week_start + timedelta(days=6)
+    elif time_range == 'monthly':
+        week_start = today.replace(day=1)
+        week_end = today.replace(day=1) + timedelta(days=monthrange(today.year, today.month)[1] - 1)
+    else:
+        week_start = today - timedelta(days=today.weekday())
+        week_end = week_start + timedelta(days=6)
 
     # Ajustar la consulta para calcular asistencia semanal por proyecto
-    # Incluyendo solo obras activas según su fecha de inicio y fin
+    # Usando min() para asegurarnos de que fecha_inicio__lte utiliza la fecha más temprana posible
+    earliest_start = min(today, week_end)
     attendance_data = Obra.objects.filter(
-        fecha_inicio__lte=today,  # La obra ha comenzado
-        fecha_fin__gte=today      # La obra no ha terminado
+        fecha_inicio__lte=earliest_start,
+        fecha_fin__gte=week_start
     ).annotate(
         full_time=Count(
             Case(
@@ -242,82 +254,95 @@ def attendance_by_week_project(request):
 
 @login_required
 def progreso_obras(request):
-    hoy = now().date()  # Usar date() para obtener solo la fecha sin la hora
-    # Filtra solo las obras que están activas basándote en las fechas de inicio y fin
-    obras_activas = Obra.objects.filter(fecha_inicio__lte=hoy, fecha_fin__gte=hoy)
+    try:
+        time_range = request.GET.get('time_range', 'weekly')
+        conjunto = int(request.GET.get('conjunto', 1))
+        today = now().date()
 
-    labels = []
-    data = []
+        if time_range == 'weekly':
+            start_date = today - timedelta(days=today.weekday() + 7 * (conjunto - 1))
+            end_date = start_date + timedelta(days=6)
+        elif time_range == 'monthly':
+            start_date = today.replace(day=1)
+            end_date = today.replace(day=monthrange(today.year, today.month)[1] - 1)
+        else:
+            start_date = today
+            end_date = today
 
-    for obra in obras_activas:
-        tiempo_total = (obra.fecha_fin - obra.fecha_inicio).days
-        tiempo_transcurrido = (hoy - obra.fecha_inicio).days
+        obras_activas = Obra.objects.filter(fecha_inicio__lte=today, fecha_fin__gte=start_date)
 
-        if tiempo_transcurrido > 0:
-            # Calcula el porcentaje y asegura que no exceda el 100%
-            porcentaje_transcurrido = min((tiempo_transcurrido / tiempo_total) * 100 if tiempo_total > 0 else 0, 100)
+        labels = []
+        data = []
 
-            labels.append(obra.nombre)  # Agrega el nombre de la obra a la lista de etiquetas
-            data.append(abs(int(porcentaje_transcurrido)))  # Agrega el porcentaje de progreso a la lista de datos
+        for obra in obras_activas:
+            tiempo_total = (obra.fecha_fin - obra.fecha_inicio).days + 1  # +1 to include the end day
+            tiempo_transcurrido = (today - obra.fecha_inicio).days + 1
+            porcentaje_transcurrido = (tiempo_transcurrido / tiempo_total) * 100 if tiempo_total > 0 else 0
+            labels.append(obra.nombre)
+            data.append(int(porcentaje_transcurrido))
 
-    return JsonResponse({'labels': labels, 'data': data})
+        return JsonResponse({'labels': labels, 'data': data})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)  # Provide error message in the response
+
 @login_required
 def summary_week_data(request):
     time_range = request.GET.get('time_range', 'weekly')
     conjunto = int(request.GET.get('conjunto', 1))
-    today = timezone.now().date()
+    today = now().date()
 
     start_date, end_date = None, None
     if time_range == 'weekly':
-        start_date = today - timedelta(days=today.weekday())  # Starts from this week's Monday
-        end_date = start_date + timedelta(days=5)  # Ends on Saturday
+        start_date = today - timedelta(days=today.weekday() + 7 * (conjunto - 1))
+        end_date = start_date + timedelta(days=6)
     elif time_range == 'monthly':
         month_first_day = today.replace(day=1) - timedelta(days=31 * (conjunto - 1))
         last_day = monthrange(month_first_day.year, month_first_day.month)[1]
         start_date = month_first_day
         end_date = month_first_day.replace(day=last_day)
+    elif time_range == 'multiweek':
+        start_date = today - timedelta(days=today.weekday() + 7 * (conjunto - 1))
+        end_date = start_date + timedelta(days=7 * conjunto - 1)
 
     if start_date is None or end_date is None:
-        return JsonResponse({'error': 'Rango de tiempo no válido.'}, status=400)
+        return JsonResponse({'error': 'Invalid time range.'}, status=400)
 
-    # Adjusting the filters for active projects
-    active_projects_count = Obra.objects.filter(fecha_inicio__lte=today, fecha_fin__gte=today).count()
-    active_obras = Obra.objects.filter(fecha_inicio__lte=today, fecha_fin__gte=today)
+    # Asegurándose de que solo se incluyan obras que han comenzado en o antes de la fecha actual o el inicio del intervalo
+    active_obras = Obra.objects.filter(
+        Q(fecha_inicio__lte=today) & (Q(fecha_inicio__lte=end_date) & Q(fecha_fin__gte=start_date))
+    )
     active_projects_id = active_obras.values('id')
-    # Querying valid attendances
-    valid_attendances_week = Asistencia.objects.filter(
+
+    valid_attendances = Asistencia.objects.filter(
         fecha__range=(start_date, end_date),
         entrada__isnull=False,
         salida__isnull=False,
         empleado__obra__id__in=active_projects_id
     ).values('empleado', 'fecha').annotate(daily_payment=Sum(F('empleado__sueldo') / 6)).order_by('empleado')
 
-    # Calculating payments
-    total_payment_for_week = sum(attendance['daily_payment'] for attendance in valid_attendances_week) if valid_attendances_week else 0.0
-    total_payment_for_week = round(total_payment_for_week, 2)
+    total_payment = sum(attendance['daily_payment'] for attendance in valid_attendances) if valid_attendances else 0.0
+    total_payment = round(total_payment, 2)
+    total_payment_float = float(total_payment)  # Convertir Decimal a float
 
-    # Counting active employees
     active_employees_count = Empleado.objects.filter(obra__in=active_projects_id).distinct().count()
 
-    # Retrieving additional data
     data = attendance_by_week_project(request)
     data = json.loads(data.content)
 
-    # Calculating attendance percentage
     asistencia = [d['full_time'] + d['part_time'] for d in data]
     total = [d['total_employees'] for d in data]
     porcentaje = (sum(asistencia) / sum(total) * 100) if total and sum(total) > 0 else 0
+    print("Total payment type:", type(total_payment_float))
+    # En Django
+    return JsonResponse({
+        'data': {
+            'active_projects': active_obras.count(),
+            'active_employees': active_employees_count,
+            'total_payment_for_week': total_payment_float,
+            'attendance_percentage': int(porcentaje)
+        }
+    }, safe=False)
 
-    # Preparing the response
-    summary = {
-        'active_projects': active_projects_count,
-        'active_employees': active_employees_count,
-        'total_payment_for_week': total_payment_for_week,
-        'porcentaje': int(porcentaje)
-    }
-
-    return JsonResponse({'data': summary}, safe=False)
-    
 # ===================================================Aplicacion de RH ===================================================
 
 # Dise;o de RH Dashboard
@@ -896,3 +921,4 @@ def user_asistencia(request):
     
 
 
+# ================== Variables Nuevas de Dashboard Admin ====================================

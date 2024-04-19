@@ -101,255 +101,113 @@
                   }
                   </script>               
 <script>
-$(document).ready(function() {
-  var obra = $('#obra-select').val();
-  console.log('obra',obra);
-  if (!obra) {
-    console.error("No se ha seleccionado una obra.");
-    return;
-  }
-  $.ajax({
-    url: '/ajax/attendance_by_week_project_RH/?obra_id=' + obra,
-    type: 'GET',
-    dataType: 'json',
-    success: function(response) {
-      console.log(obra,'dentro de ajax')
-      var data = response.data;
-      var labels = response.labels;
-      
-
-      var ctx = document.getElementById("jornada_laboral").getContext("2d");
-      
-      // Destruir el gráfico anterior si existe
-      if (window.attendanceChart) {
-        window.attendanceChart.destroy();
-      }
-
-      // Crear una nueva instancia del gráfico
-      window.attendanceChart = new Chart(ctx, {
-        type: 'line', // Tipo de gráfica
-        data: {
-          labels: labels, // Usar las etiquetas recibidas
-          datasets: [{
-            label: 'Asistencias', // Puedes cambiar este texto por algo más descriptivo según tus datos
-            data: data, // Usar los datos recibidos
-            backgroundColor: "rgba(255, 99, 132, 0.2)", // Color de fondo
-            borderColor: "rgba(255, 99, 132, 1)", // Color de la línea
-            borderWidth: 2,
-            fill: false, // No rellenar bajo la línea
-            tension: 0 // Curvatura de la línea
-          }]
-        },
-        options: {
-          scales: {
-            y: {
-              beginAtZero: true // El eje Y comienza en 0
-            }
-          },
-          responsive: true, // Hace que la gráfica sea responsive
-          maintainAspectRatio: false // Mantiene la proporción del aspecto según el tamaño dado
-        }
+  $(document).ready(function() {
+      // Evento de cambio para el selector de obras
+      $('#obra-select').change(function() {
+          var obraId = $(this).val(); // Obtiene el ID de la obra seleccionada
+          console.log('Obra seleccionada:', obraId);
+  
+          if (!obraId) {
+              console.error("No se ha seleccionado una obra.");
+              return;
+          }
+  
+          // Llamada AJAX para el gráfico de asistencia por semana
+          cargarDatosAsistencia(obraId);
+          
+          // Llamada AJAX para el resumen semanal
+          cargarResumenSemanal(obraId);
       });
-    },
-    error: function(error) {
-      console.error("Error al cargar los datos: ", error);
-      alert("Error al cargar los datos.", error);
-    }
+  
+      // Dispara el evento de cambio en la carga inicial para cargar los datos de la obra predeterminada
+      $('#obra-select').trigger('change');
   });
-});
-
-
-
-/* 
-
-$(document).ready(function() {
-  var obra = $('#obra-select').val();
-  if (!obra) {
-    console.error("No se ha seleccionado una obra.");
-    return;
-  }
+  
+  function cargarDatosAsistencia(obraId) {
     $.ajax({
-        url: '/ajax/progreso_obra/?obra_id=' + obra,
+        url: '/ajax/attendance_by_week_project_RH/?obra_id=' + obraId,
         type: 'GET',
+        dataType: 'json',
         success: function(response) {
-            var data = response.data[0]; // Asumiendo que la respuesta es un array y estamos interesados en el primer objeto
-            var nombre = data.obra_nombre;
-            var ctx = document.getElementById('progreso_obra').getContext('2d');
-            var miGraficoDoughnut = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: [' Completado', 'Restante'],
-                    datasets: [{
-                        label: 'Progreso de la obra',
-                        data: [data.porcentaje, 100 - data.porcentaje], // Asumiendo que "data.restante" no es necesario y calculamos el restante directamente
-                        backgroundColor: [
-                            'rgba(75, 192, 192, 0.2)', // Verde para completado
-                            'rgba(255, 99, 132, 0.2)'  // Rojo para lo que resta
-                        ],
-                        borderColor: [
-                            'rgba(75, 192, 192, 1)',
-                            'rgba(255, 99, 132, 1)'
-                        ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    legend: {
-                        position: 'top',
-                    },
-                    title: {
-                        display: true,
-                        text: nombre
-                    },
-                    animation: {
-                        animateScale: true,
-                        animateRotate: true,
-                        onComplete: function() {
-                            var ctx = this.chart.ctx;
-                            ctx.font = '16px Arial';
-                            ctx.textAlign = 'center';
-                            ctx.textBaseline = 'middle';
-                            var centerX = (this.chart.chartArea.left + this.chart.chartArea.right) / 2;
-                            var centerY = (this.chart.chartArea.top + this.chart.chartArea.bottom) / 2;
-                            ctx.fillText(data.porcentaje.toFixed(2) + '%', centerX, centerY);
-                        }
-                    }
-                }
-            });
+            actualizarGraficoAsistencia(response.data, response.labels);
+        },
+        error: function(xhr, status, error) {
+            console.error("Error en AJAX:", xhr, status, error);
+            alert("Error al cargar datos: " + xhr.responseJSON.error);
         }
     });
-});
- */ 
-
-
-document.addEventListener("DOMContentLoaded", function () {
-    const csrftoken = document.querySelector("[name=csrf-token]").content;
-
-    fetchSummaryData(csrftoken);
-
-  });
-
-
-  function fetchSummaryData(csrftoken) {
-    var obra = $('#obra-select').val();
-    if (!obra) {
-      console.error("No se ha seleccionado una obra.");
-      return;
-    }
-    fetch("/ajax/summary_week_RH/?obra_id=" + obra)
+}   
+  
+  function actualizarGraficoAsistencia(data, labels) {
+      var ctx = document.getElementById("jornada_laboral").getContext("2d");
+      if (window.attendanceChart) {
+          window.attendanceChart.destroy();
+      }
+      window.attendanceChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+              labels: labels,
+              datasets: [{
+                  label: 'Asistencias',
+                  data: data,
+                  backgroundColor: "rgba(255, 99, 132, 0.2)",
+                  borderColor: "rgba(255, 99, 132, 1)",
+                  borderWidth: 2,
+                  fill: false,
+                  tension: 0
+              }]
+          },
+          options: {
+              scales: {
+                  y: {
+                      beginAtZero: true
+                  }
+              },
+              responsive: true,
+              maintainAspectRatio: false
+          }
+      });
+  }
+  
+  function cargarResumenSemanal(obraId) {
+      fetch(`/ajax/summary_week_RH/?obra_id=${obraId}`)
       .then((response) => response.json())
-
       .then((data) => {
-        console.log(obra)
-        
-        const summaryContainer = document.getElementById("summary-info");
-        summaryContainer.innerHTML = `
-            <div class="w-full px-6 py-6 mx-auto">
-              <!-- row 1 -->
-              <div class="flex flex-wrap -mx-3">
-                <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
-        <div class="relative flex flex-col min-w-0 break-words bg-white shadow-xl dark:bg-slate-850 dark:shadow-dark-xl rounded-2xl bg-clip-border">
-          <div class="flex-auto p-4">
-            <div class="flex flex-row -mx-3">
-              <div class="flex-none w-2/3 max-w-full px-3">
-                <div>
-                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Obra:</p>
-                  <h5 class="mb-2 font-bold dark:text-white"> ${data.obra}</h5>
-                  <p class="mb-0 dark:text-white dark:opacity-60">
-                    <span class="text-sm font-bold leading-normal text-emerald-500"></span>
-                  </p>
+          const summaryContainer = document.getElementById("summary-info");
+          summaryContainer.innerHTML = `
+              <div class="w-full px-6 py-6 mx-auto">
+                <!-- row 1 -->
+                <div class="flex flex-wrap -mx-3">
+                  <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
+          <div class="relative flex flex-col min-w-0 break-words bg-white shadow-xl dark:bg-slate-850 dark:shadow-dark-xl rounded-2xl bg-clip-border">
+            <div class="flex-auto p-4">
+              <div class="flex flex-row -mx-3">
+                <div class="flex-none w-2/3 max-w-full px-3">
+                  <div>
+                    <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Obra:</p>
+                    <h5 class="mb-2 font-bold dark:text-white"> ${data.obra}</h5>
+                    <p class="mb-0 dark:text-white dark:opacity-60">
+                      <span class="text-sm font-bold leading-normal text-emerald-500"></span>
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div class="px-3 text-right basis-1/3">
-                <div class="inline-block w-12 h-12 text-center ">
-                  <i class="ni leading-none ni-money-coins text-lg relative top-3.5 text-white"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- card2 -->
-       <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
-        <div class="relative flex flex-col min-w-0 break-words bg-white shadow-xl dark:bg-slate-850 dark:shadow-dark-xl rounded-2xl bg-clip-border">
-          <div class="flex-auto p-4">
-            <div class="flex flex-row -mx-3">
-              <div class="flex-none w-2/3 max-w-full px-3">
-                <div>
-                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Total Empleados</p>
-                  <h5 class="mb-2 font-bold dark:text-white">${data.active_employees}</h5>
-                  <p class="mb-0 dark:text-white dark:opacity-60">
-                    <span class="text-sm font-bold leading-normal text-emerald-500"></span>
-                  </p>
-                </div>
-              </div>
-              <div class="px-3 text-right basis-1/3">
-                <div class="inline-block w-12 h-12 text-center ">
-                  <i class="ni leading-none ni-world text-lg relative top-3.5 text-white"></i>
+                <div class="px-3 text-right basis-1/3">
+                  <div class="inline-block w-12 h-12 text-center ">
+                    <i class="ni leading-none ni-money-coins text-lg relative top-3.5 text-white"></i>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+        <!-- card2 and so on for other cards as necessary -->
       </div>
-      <!-- card3 -->
-      <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
-        <div class="relative flex flex-col min-w-0 break-words bg-white shadow-xl dark:bg-slate-850 dark:shadow-dark-xl rounded-2xl bg-clip-border">
-          <div class="flex-auto p-4">
-            <div class="flex flex-row -mx-3">
-              <div class="flex-none w-2/3 max-w-full px-3">
-                <div>
-                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Porcentaje Asistencia </p>
-                  <h5 class="mb-2 font-bold dark:text-white"> ${data.porcentaje}%</h5>
-                  <p class="mb-0 dark:text-white dark:opacity-60">
-                    <span class="text-sm font-bold leading-normal text-red-600"></span>
-                  </p>
-                </div>
-              </div>
-              <div class="px-3 text-right basis-1/3">
-                <div class="inline-block w-12 h-12 text-center rounded-circle bg-gradient-to-tl from-emerald-500 to-teal-400">
-                  <i class="ni leading-none ni-paper-diploma text-lg relative top-3.5 text-white"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- card4 -->
-      <div class="w-full max-w-full px-3 sm:w-1/2 sm:flex-none xl:w-1/4">
-        <div class="relative flex flex-col min-w-0 break-words bg-white shadow-xl dark:bg-slate-850 dark:shadow-dark-xl rounded-2xl bg-clip-border">
-          <div class="flex-auto p-4">
-            <div class="flex flex-row -mx-3">
-              <div class="flex-none w-2/3 max-w-full px-3">
-                <div>
-                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Total a Pagar</p>
-                  <h5 class="mb-2 font-bold dark:text-white">$ ${data.total_payment_for_week}</h5>
-                  <p class="mb-0 dark:text-white dark:opacity-60">
-                    <span class="text-sm font-bold leading-normal text-emerald-500"></span>
-                  </p>
-                </div>
-              </div>
-              <div class="px-3 text-right basis-1/3">
-                <div class="inline-block w-12 h-12 text-center rounded-circle bg-gradient-to-tl from-orange-500 to-yellow-500">
-                  <i class="ni leading-none ni-cart text-lg relative top-3.5 text-white"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>    
-          
-            `;
+      `;
       })
       .catch((error) => console.error("Error:", error));
   }
-
-
-
-
-</script>           
+  </script>
+n             
                 
                 
                 

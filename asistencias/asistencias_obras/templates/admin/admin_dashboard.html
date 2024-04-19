@@ -1,556 +1,210 @@
-{% extends "layouts/base_admin.html" %} {% block content %}
+{% extends "layouts/base_admin.html" %} 
+{% block content %}
 <meta name="csrf-token" content="{{ csrf_token }}" />
 
-<head>  
+<head>
   <!-- Bootstrap CSS -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css">
-<!-- DataTables Bootstrap 5 CSS -->
-<link rel="stylesheet" href="https://cdn.datatables.net/2.0.3/css/dataTables.bootstrap5.css">
-
-  <style>
-  .grid-container {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr); /* crea 2 columnas */
-        grid-gap: 20px; /* espacio entre las columnas */
-        padding: 20px;
-
-    }
-    .grid-item {
-        background-color: #f7f7f7; /* color de fondo para cada elemento de la grilla */
-        border: 1px solid #e7e7e7; /* borde para cada elemento de la grilla */
-        padding: 20px; /* espacio interior para cada elemento de la grilla */
-        border-radius: 5px; /* esquinas redondeadas para cada elemento de la grilla */
-
-    } 
-
-.grid-item canvas {
-    width: 100% !important;
-    height: 100% !important; /* Esto asumirá la altura del contenedor padre */
-    min-height: 300px; /* Puedes ajustar esto según sea necesario */
-    max-height: 400px; /* Puedes ajustar esto según sea necesario */
-    min-width: 300px; /* Puedes ajustar esto según sea necesario */
-    max-width: 400px; /* Puedes ajustar esto según sea necesario */
-    margin: 0 auto; /* Centra el elemento */
-    display: block; /* Evita el espacio adicional debajo del elemento */
-    border-radius: 5px; /* esquinas redondeadas para cada elemento de la grilla */
-    
-}
-
-    .canvas_especial {
-        
-        min-width: 600px;
-        max-width: 100%;
-        height: 500px; /* Puedes ajustar esto según sea necesario */
-        margin: 0 auto; /* Centra el elemento */
-        display: block; /* Evita el espacio adicional debajo del elemento */
-        border-radius: 5px; /* esquinas redondeadas para cada elemento de la grilla */
-                            
-    }
-    .navbar {
-    background-color: #333;
-    position: fixed; /* Set the navbar to fixed position */
-    top: 0; /* Position the navbar at the top of the page */
-    width: 100%; /* Full width */
-}
-   
-
-    </style>
-
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css">
+  <!-- DataTables Bootstrap 5 CSS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/2.0.3/css/dataTables.bootstrap5.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
-<div>
-  <div class="d-flex align-items-center justify-content-between">
-    <h1 class="text-3xl text-black pb-6">Dashboard</h1>
-    <div class="btn-group" role="group" aria-label="Dashboard buttons">
-      <button type="button" class="btn btn-secondary" data-value="weekly">Semanal</button>
-      <button type="button" class="btn btn-secondary" data-value="monthly">Mensual</button>
-      <div class="btn-group" role="group">
-        <button id="conjunto" type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-          Conjunto de Semanas
-        </button>
-        <ul class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-          <li><button class="dropdown-item" data-value="3">2 Semanas</button></li>
-          <li><button class="dropdown-item" data-value="4">3 Semanas</button></li>
-        </ul>
-      </div>
-    </div>
-  </div>
-<div class="max-w-full px-6 py-6 mx-auto" id="summary-info"></div>
-
-<div class="p-4 rounded-lg">
-  <!-- Asistencias sección -->
-  <div class="p-4 bg-white shadow-md rounded-lg">
-    <p class="text-xl pb-3 flex items-center">
-      <i class="fas fa-plus mr-3"></i> Asistencias
-    </p>
-    <div class="w-full flex justify-center">
-      <canvas id="attendance-chart" class="canvas_especial"></canvas>
-    </div>
-  </div>
-</div>
-
-
-
-<div class="p-4 rounded-lg" >
-  <!--progreso seccion-->
-  <div class="p-4 bg-white shadow-md rounded-lg">
-      <p class="text-xl pb-3 flex items-center">
-          <i class="fas fa-plus mr-3"></i> Progreso de obras
-      </p>
-      <div class="w-full flex justify-center">
-          <canvas id="transcurrido" class="canvas_especial" ></canvas>
-      </div>
+<div class="container mt-5">
+  <h1>Dashboard</h1>
+  <div class="btn-group" role="group" aria-label="Time Range Buttons">
+    <button type="button" class="btn btn-secondary" onclick="setTimeRange('weekly')">Semanal</button>
+    <button type="button" class="btn btn-secondary" onclick="setTimeRange('monthly')">Mensual</button>
   </div>
 
-
-
-
-
-<div class="w-full mt-12 bg-white rounded-lg">
-
-<div class="p-4 bg-white shadow-md rounded-lg">  
-
-<p class="text-xl pb-3 flex items-center">
-  <i class="mr-3"></i> Pagos por Obra
-</p>
-<div class="w-full flex justify-center">
-  <canvas id="pagos_obra" class="canvas_especial" ></canvas>
-</div>
-</div>
-
-
-</div>
-
-</div>
-
-</div>
-
-
-
-<div class="w-full mt-12 bg-white rounded-lg">
-
-  <div class="p-4 bg-white shadow-md rounded-lg">  
-  
-  <p class="text-xl pb-3 flex items-center">
-    <i class="mr-3"></i> Supervisores por Obra
-  </p>
-  <table id="tablaSupervisores" class="table table-striped">
-    <thead class="bg-gray-800 text-white">
-        <tr>
-          <th class="w-1/3 text-left py-3 px-4 uppercase font-semibold text-sm text-center">Recursos Humanos</th>
-          <th class="w-1/3 text-left py-3 px-4 uppercase font-semibold text-sm">Obra</th>
-        </tr>
-    </thead>
-    <tbody>
-        <!--Datos obtenidos con AJAX-->
-    </tbody>
-  </table>
-  
+  <div id="conjunto-group" class="btn-group" style="display:none;">
+    <button id="conjunto-button" type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+      Conjunto de Semanas
+    </button>
+    <ul class="dropdown-menu">
+      <li><button class="dropdown-item" onclick="setConjunto(1)">1 Semana</button></li>
+      <li><button class="dropdown-item" onclick="setConjunto(2)">2 Semanas</button></li>
+      <li><button class="dropdown-item" onclick="setConjunto(3)">3 Semanas</button></li>
+    </ul>
   </div>
-  
-  
+
+  <div id="result" class="mt-3">
+    <!-- Results will be displayed here -->
   </div>
-  
-<script
-  src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js"
-  defer
-></script>
-<!-- Font Awesome -->
-<script
-  src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js"
-  integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs="
-  crossorigin="anonymous"
-></script>
-<!-- ChartJS -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<!-- ChartJS Plugin -->
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+  <div id="result2" class="mt-3">
+    <canvas id="attendanceChart"></canvas> <!-- Canvas for Chart.js -->
+  </div>
+  <div id="result3" class="mt-3">
+    <canvas id="progressChart"></canvas> <!-- Canvas for Chart.js progress chart -->
 
-
-<!-- jQuery -->
-<script src="https://code.jquery.com/jquery-3.7.1.js"></script>
-<!-- Bootstrap Bundle JS (incluye Popper) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-
-
+    <!-- Results will be displayed here -->
+  </div>
+</div>
 
 <script>
+  let timeRange = 'weekly';  // Default time range
+  let conjunto = 1;          // Default to 1 week
+  let attendanceChart = null; // Global variable to manage chart instance
 
-$(document).ready(function() {
-  $.ajax({  
-    url: "/ajax/supervisores_obras",
-    method: "GET",
-    dataType: "json",
-    success: function(respuesta) {
-      
-      data = respuesta.data;
-      var tabla = $("#tablaSupervisores tbody");
-      tabla.empty();
-      
-
-      data.forEach(function(supervisor) {
-        var fila = '<tr>' +
-          '<td>' + supervisor.nombre + '</td>' +
-          '<td>' + supervisor.obra + '</td>' +
-          '</tr>';
-        tabla.append(fila);
-      });
-
-    },
-    error: function(error) {
-      console.error("Error en la solicitud AJAX: ", error);
-    }
-  });
-});
-
-
-$(document).ready(function(){
-  $.ajax({
-    url: "/ajax/tabla_pagos/",
-    method: "GET",
-    success: function (respuesta) {
-      var labels = respuesta.labels; // Asume que la respuesta incluye etiquetas
-      var data = respuesta.data; // Asume que la respuesta incluye los datos correspondientes
-
-      var ctx = document.getElementById('pagos_obra').getContext('2d'); // Obtiene el contexto del canvas
-      var myChart = new Chart(ctx, {
-        type: 'line', // Tipo de gráfica
-        data: {
-          labels: labels, // Usar las etiquetas recibidas
-          datasets: [{
-            label: 'Pagos por obra', // Puedes cambiar este texto por algo más descriptivo según tus datos
-            data: data, // Usar los datos recibidos
-            backgroundColor: "rgba(255, 99, 132, 0.2)", // Color de fondo
-            borderColor: "rgba(255, 99, 132, 1)", // Color de la línea
-            borderWidth: 2,
-            fill: false // No rellenar bajo la línea
-          }]
-        },
-        options: {
-          scales: {
-            y: {
-              beginAtZero: true // El eje Y comienza en 0
-            }
-          },
-          responsive: true, // Hace que la gráfica sea responsive
-          maintainAspectRatio: false // Mantiene la proporción del aspecto según el tamaño dado
-        }
-      });
-    },
-    error: function (error) {
-      console.error("Error en la solicitud AJAX: ", error);
-    }
-  });
-});
-
-
-
-  $(document).ready(function () {
-    $.ajax({
-      url: "/ajax/progreso_obras/",
-      method: "GET",
-      success: function (respuesta) {
-        labels = respuesta.labels
-        data = respuesta.data
-
-        crearGrafica(
-          labels,
-          data,
-          "bar",
-          "transcurrido",
-          "Progreso de Obras",
-          true
-
-        );
-
-      },
-      
-    });
-
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeRange('weekly');  // Set default to 'weekly'
   });
 
-
-
-
-function crearGrafica(etiquetas, datos, type, nombre, text, esHorizontal = false) {
-    const ctx = document.getElementById(nombre).getContext("2d");
-
-    const backgroundColors = [
-        "rgba(255, 99, 132, 0.2)",
-        "rgba(54, 162, 235, 0.2)",
-        "rgba(255, 206, 86, 0.2)",
-        "rgba(75, 192, 192, 0.2)",
-        "rgba(153, 102, 255, 0.2)",
-        "rgba(255, 159, 64, 0.2)"
-    ];
-
-    const borderColors = [
-        "rgba(255, 99, 132, 1)",
-        "rgba(54, 162, 235, 1)",
-        "rgba(255, 206, 86, 1)",
-        "rgba(75, 192, 192, 1)",
-        "rgba(153, 102, 255, 1)",
-        "rgba(255, 159, 64, 1)"
-    ];
-    if (datos.length > backgroundColors.length) {
-        while (backgroundColors.length < datos.length) {
-            backgroundColors = [...backgroundColors, ...backgroundColors.slice(0, datos.length - backgroundColors.length)];
-        }
-    }
-
-    if (datos.length > borderColors.length) {
-        while (borderColors.length < datos.length) {
-            borderColors = [...borderColors, ...borderColors.slice(0, datos.length - borderColors.length)];
-        }
-    }
-
-    const datasets = datos.map((dato, index) => ({
-        label: etiquetas[index],
-        data: [dato],
-        backgroundColor: backgroundColors[index],
-        borderColor: borderColors[index],
-        borderWidth: 1
-    }));
-
-    const miGrafica = new Chart(ctx, {
-        type: type,
-        data: {
-            labels: [''], datasets: datasets
-        },
-        options: {
-            indexAxis: esHorizontal ? 'y' : 'x', // Define el eje principal para barras horizontales o verticales
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    display: type !== 'line', // Oculta el eje Y para gráficas de línea
-                },
-                x: {
-                    beginAtZero: true,
-                    display: type !== 'line', // Oculta el eje X para gráficas de línea
-                }
-            }
-        },
-        plugins: {
-            legend: {
-                position: "top"
-            },
-            title : {
-                display: true,
-                text: text
-            }
-        } 
-    });
-}
-
-
-  document.addEventListener("DOMContentLoaded", function () {
-    const csrftoken = document.querySelector("[name=csrf-token]").content;
-
-    fetchSummaryData(csrftoken);
-    fetchAttendanceByProject(csrftoken);
-
-    // Controlador para botones de tiempo
-    document.querySelectorAll('.btn[data-value]').forEach(button => {
-      button.addEventListener('click', function() {
-        const timeRange = this.getAttribute('data-value');
-        fetchSummaryData(csrftoken, timeRange);
-      });
-    });
-
-    // Controlador para botones de conjunto
-    document.querySelectorAll('.dropdown-item[data-value]').forEach(button => {
-      button.addEventListener('click', function() {
-        const conjunto = this.getAttribute('data-value');
-        fetchSummaryData(csrftoken, null, conjunto);
-      });
-    });
-  });
-
-  function fetchSummaryData(csrftoken, timeRange, conjunto) {
-
-    $.ajax({
-      url: "/summary-data/",
-      method: "GET",
-      data: {
-        'time_range': timeRange,
-        'conjunto': conjunto
-      },
-      success: function (response) {
-        
-        data = response.data;
-        const summaryContainer = document.getElementById("summary-info");
-        summaryContainer.innerHTML = `
-            <div class="w-full px-6 py-6 mx-auto">
-              <!-- row 1 -->
-              <div class="flex flex-wrap -mx-3">
-                <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
-        <div class="relative flex flex-col min-w-0 break-words bg-white shadow-xl dark:bg-slate-850 dark:shadow-dark-xl rounded-2xl bg-clip-border">
-          <div class="flex-auto p-4">
-            <div class="flex flex-row -mx-3">
-              <div class="flex-none w-2/3 max-w-full px-3">
-                <div>
-                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Obras Activas:</p>
-                  <h5 class="mb-2 font-bold dark:text-white"> ${data.active_projects}</h5>
-                  <p class="mb-0 dark:text-white dark:opacity-60">
-                    <span class="text-sm font-bold leading-normal text-emerald-500"></span>
-                  </p>
-                </div>
-              </div>
-              <div class="px-3 text-right basis-1/3">
-                <div class="inline-block w-12 h-12 text-center ">
-                  <i class="ni leading-none ni-money-coins text-lg relative top-3.5 text-white"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- card2 -->
-       <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
-        <div class="relative flex flex-col min-w-0 break-words bg-white shadow-xl dark:bg-slate-850 dark:shadow-dark-xl rounded-2xl bg-clip-border">
-          <div class="flex-auto p-4">
-            <div class="flex flex-row -mx-3">
-              <div class="flex-none w-2/3 max-w-full px-3">
-                <div>
-                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Total Empleados</p>
-                  <h5 class="mb-2 font-bold dark:text-white">${data.active_employees}</h5>
-                  <p class="mb-0 dark:text-white dark:opacity-60">
-                    <span class="text-sm font-bold leading-normal text-emerald-500"></span>
-                  </p>
-                </div>
-              </div>
-              <div class="px-3 text-right basis-1/3">
-                <div class="inline-block w-12 h-12 text-center ">
-                  <i class="ni leading-none ni-world text-lg relative top-3.5 text-white"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- card3 -->
-      <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
-        <div class="relative flex flex-col min-w-0 break-words bg-white shadow-xl dark:bg-slate-850 dark:shadow-dark-xl rounded-2xl bg-clip-border">
-          <div class="flex-auto p-4">
-            <div class="flex flex-row -mx-3">
-              <div class="flex-none w-2/3 max-w-full px-3">
-                <div>
-                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Porcentaje Asistencia</p>
-                  <h5 class="mb-2 font-bold dark:text-white"> ${data.porcentaje}%</h5>
-                  <p class="mb-0 dark:text-white dark:opacity-60">
-                    <span class="text-sm font-bold leading-normal text-red-600"></span>
-                  </p>
-                </div>
-              </div>
-              <div class="px-3 text-right basis-1/3">
-                <div class="inline-block w-12 h-12 text-center rounded-circle bg-gradient-to-tl from-emerald-500 to-teal-400">
-                  <i class="ni leading-none ni-paper-diploma text-lg relative top-3.5 text-white"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- card4 -->
-      <div class="w-full max-w-full px-3 sm:w-1/2 sm:flex-none xl:w-1/4">
-        <div class="relative flex flex-col min-w-0 break-words bg-white shadow-xl dark:bg-slate-850 dark:shadow-dark-xl rounded-2xl bg-clip-border">
-          <div class="flex-auto p-4">
-            <div class="flex flex-row -mx-3">
-              <div class="flex-none w-2/3 max-w-full px-3">
-                <div>
-                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Total a Pagar</p>
-                  <h5 class="mb-2 font-bold dark:text-white">$ ${data.total_payment_for_week}</h5>
-                  <p class="mb-0 dark:text-white dark:opacity-60">
-                    <span class="text-sm font-bold leading-normal text-emerald-500"></span>
-                  </p>
-                </div>
-              </div>
-              <div class="px-3 text-right basis-1/3">
-                <div class="inline-block w-12 h-12 text-center rounded-circle bg-gradient-to-tl from-orange-500 to-yellow-500">
-                  <i class="ni leading-none ni-cart text-lg relative top-3.5 text-white"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>    
-          
-            `;
-      },
-      error: function (xhr, status, error) {
-        console.error("Error en la solicitud AJAX: ", xhr, status, error);
-      },
-    });
-        
-
-    fetch("/summary-data/")
-      .then((response) => response.json())
-      .then((data) => {
-        
-      })
-      .catch((error) => console.error("Error:", error));
+  function setTimeRange(value) {
+    timeRange = value;
+    document.getElementById('conjunto-group').style.display = (timeRange === 'weekly' ? 'block' : 'none');
+    conjunto = (timeRange === 'weekly' ? conjunto : 1); // Reset conjunto to 1 for monthly
+    tryFetchData();
   }
 
+  function setConjunto(value) {
+    conjunto = value;
+    tryFetchData();
+  }
 
+  function tryFetchData() {
+    fetchSummaryData();
+    fetchAttendanceData();
+    fetchProgressData();
+  }
 
-  function fetchAttendanceByProject(csrftoken) {
-    fetch("/attendance-by-project/")
-      .then((response) => response.json())
-      .then((data) => {
-        const labels = data.map((item) => item.nombre);
-        const fullTimeData = data.map((item) => item.full_time);
-        const partTimeData = data.map((item) => item.part_time);
-        const notAttendedData = data.map((item) => item.not_attended);
+  function fetchSummaryData() {
+    fetch(`/summary_week_data?time_range=${timeRange}&conjunto=${conjunto}`)
+        .then(response => response.json())
+        .then(data => {
+            const summary = data.data;
+            const cardsHtml = `
+                <div class="flex flex-wrap justify-center">
+                    <div class="max-w-sm rounded overflow-hidden shadow-lg bg-white m-4 p-4">
+                        <h2 class="text-xl font-bold">Proyectos Activos</h2>
+                        <p>${summary.active_projects}</p>
+                    </div>
+                    <div class="max-w-sm rounded overflow-hidden shadow-lg bg-white m-4 p-4">
+                        <h2 class="text-xl font-bold">Empleados Activos</h2>
+                        <p>${summary.active_employees}</p>
+                    </div>
+                    <div class="max-w-sm rounded overflow-hidden shadow-lg bg-white m-4 p-4">
+                        <h2 class="text-xl font-bold">Total a Pagar</h2>
+                        <p>$${summary.total_payment_for_week.toFixed(2)}</p>
+                    </div>
+                    <div class="max-w-sm rounded overflow-hidden shadow-lg bg-white m-4 p-4">
+                        <h2 class="text-xl font-bold">Porcentaje de asistencia</h2>
+                        <p>${summary.attendance_percentage}%</p>
+                    </div>
+                </div>
+            `;
+            document.getElementById('result').innerHTML = cardsHtml;
+        })
+        .catch(error => {
+            console.error('Error fetching summary data:', error);
+            document.getElementById('result').innerHTML = 'Error fetching summary data. Please try again.';
+        });
+}
+function fetchAttendanceData() {
+    fetch(`/attendance_by_week_project?time_range=${timeRange}&conjunto=${conjunto}`)
+      .then(response => response.json())
+      .then(data => {
+        const labels = data.map(obra => obra.nombre);
+        const fullTime = data.map(obra => obra.full_time);
+        const partTime = data.map(obra => obra.part_time);
+        const notAttended = data.map(obra => obra.not_attended);
 
-        const ctx = document
-          .getElementById("attendance-chart")
-          .getContext("2d");
-        new Chart(ctx, {
-          type: "bar",
+        if (attendanceChart) {
+          attendanceChart.destroy(); // Destroy the existing chart before creating a new one
+        }
+
+        const ctx = document.getElementById('attendanceChart').getContext('2d');
+        attendanceChart = new Chart(ctx, {
+          type: 'bar',
           data: {
             labels: labels,
-            datasets: [
-              {
-                label: "Jornada Completa",
-                data: fullTimeData,
-                backgroundColor: "rgba(54, 162, 235, 0.2)",
-                borderColor: "rgba(54, 162, 235, 1)",
-                borderWidth: 1,
-              },
-              {
-                label: "Jornada Incompleta",
-                data: partTimeData,
-                backgroundColor: "rgba(255, 206, 86, 0.2)",
-                borderColor: "rgba(255, 206, 86, 1)",
-                borderWidth: 1,
-              },
-              {
-                label: "Sin Asistencia",
-                data: notAttendedData,
-                backgroundColor: "rgba(255, 99, 132, 0.2)",
-                borderColor: "rgba(255, 99, 132, 1)",
-                borderWidth: 1,
-              },
-            ],
+            datasets: [{
+              label: 'Jornada Completa',
+              data: fullTime,
+              backgroundColor: 'rgba(54, 162, 235, 0.2)',
+              borderColor: 'rgba(54, 162, 235, 1)',
+              borderWidth: 1
+            }, {
+              label: 'Media Jornada',
+              data: partTime,
+              backgroundColor: 'rgba(255, 206, 86, 0.2)',
+              borderColor: 'rgba(255, 206, 86, 1)',
+              borderWidth: 1
+            }, {
+              label: 'No asistio',
+              data: notAttended,
+              backgroundColor: 'rgba(255, 99, 132, 0.2)',
+              borderColor: 'rgba(255, 99, 132, 1)',
+              borderWidth: 1
+            }]
           },
           options: {
-            responsive: true,
-            maintainAspectRatio: false,
             scales: {
               y: {
-                beginAtZero: true,
-              },
-            },
-          },
+                beginAtZero: true
+              }
+            }
+          }
         });
       })
-      .catch((error) => console.error("Error:", error));
+      .catch(error => {
+        console.error('Error fetching attendance data:', error);
+        document.getElementById('result2').innerHTML = 'Error fetching attendance data. Please try again.';
+      });
   }
+  function fetchProgressData() {
+    fetch(`/progreso_obras?time_range=${timeRange}&conjunto=${conjunto}`)
+        .then(response => response.json())
+        .then(data => {
+            if (!data || !data.labels || !data.data) { // Check if data and its expected properties exist
+                throw new Error('Invalid data structure received');
+            }
+            const projectNames = data.labels;
+            const progressPercentages = data.data;
 
- 
+            const progressCtx = document.getElementById('progressChart').getContext('2d');
+            if (window.progressChart instanceof Chart) {
+                window.progressChart.destroy(); // Destroy the existing chart before creating a new one
+            }
+            window.progressChart = new Chart(progressCtx, {
+                type: 'bar',
+                data: {
+                    labels: projectNames,
+                    datasets: [{
+                        label: 'Progress Percentage',
+                        data: progressPercentages,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%'; // Append a percentage sign
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    }
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching progress data:', error);
+            document.getElementById('result3').innerHTML = `Error fetching progress data: ${error.message}`;
+        });
+}
 
 </script>
+
+<!-- Bootstrap Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 {% endblock %}
