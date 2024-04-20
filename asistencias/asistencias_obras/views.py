@@ -202,9 +202,9 @@ def attendance_by_week_project(request):
     elif time_range == 'monthly':
         week_start = today.replace(day=1)
         week_end = today.replace(day=1) + timedelta(days=monthrange(today.year, today.month)[1] - 1)
-    else:
-        week_start = today - timedelta(days=today.weekday())
-        week_end = week_start + timedelta(days=6)
+    elif time_range == 'multiweek':
+        start_date = today - timedelta(days=today.weekday() + 7 * (conjunto - 1))
+        end_date = start_date + timedelta(days=7 * conjunto - 1)
 
     # Ajustar la consulta para calcular asistencia semanal por proyecto
     # Usando min() para asegurarnos de que fecha_inicio__lte utiliza la fecha más temprana posible
@@ -265,9 +265,9 @@ def progreso_obras(request):
         elif time_range == 'monthly':
             start_date = today.replace(day=1)
             end_date = today.replace(day=monthrange(today.year, today.month)[1] - 1)
-        else:
-            start_date = today
-            end_date = today
+        elif time_range == 'multiweek':
+            start_date = today - timedelta(days=today.weekday() + 7 * (conjunto - 1))
+            end_date = start_date + timedelta(days=7 * conjunto - 1)
 
         obras_activas = Obra.objects.filter(fecha_inicio__lte=today, fecha_fin__gte=start_date)
 
@@ -278,6 +278,7 @@ def progreso_obras(request):
             tiempo_total = (obra.fecha_fin - obra.fecha_inicio).days + 1  # +1 to include the end day
             tiempo_transcurrido = (today - obra.fecha_inicio).days + 1
             porcentaje_transcurrido = (tiempo_transcurrido / tiempo_total) * 100 if tiempo_total > 0 else 0
+            porcentaje_transcurrido = min(porcentaje_transcurrido, 100)  # Limitar el porcentaje a 100%
             labels.append(obra.nombre)
             data.append(int(porcentaje_transcurrido))
 
@@ -343,6 +344,50 @@ def summary_week_data(request):
         }
     }, safe=False)
 
+@login_required
+def tabla_pagos(request):
+    time_range = request.GET.get('time_range', 'weekly')
+    conjunto = int(request.GET.get('conjunto', 1))
+    today = timezone.now().date()
+
+    if time_range == 'weekly':
+        start_date = today - timedelta(days=today.weekday() + (conjunto - 1) * 7)
+        end_date = start_date + timedelta(days=6)
+    elif time_range == 'multiweek':
+        start_date = today - timedelta(days=today.weekday())
+        end_date = start_date + timedelta(weeks=conjunto) - timedelta(days=1)
+    elif time_range == 'monthly':
+        if conjunto == 1:
+            start_date = today.replace(day=1)
+        else:
+            start_date = today.replace(day=1)
+            for _ in range(1, conjunto):
+                start_date = (start_date - timedelta(days=1)).replace(day=1)
+        last_day = monthrange(start_date.year, start_date.month)[1]
+        end_date = start_date.replace(day=last_day)
+
+    active_obras = Obra.objects.filter(fecha_inicio__lte=end_date, fecha_fin__gte=start_date)
+    active_projects_id = active_obras.values('id')
+
+    valid_attendances = Asistencia.objects.filter(
+        fecha__range=(start_date, end_date),
+        entrada__isnull=False,
+        salida__isnull=False,
+        empleado__obra__id__in=active_projects_id
+    ).annotate(
+        days_worked=Count('fecha'),
+        total_payment=ExpressionWrapper(
+            Coalesce(F('days_worked') * F('empleado__puesto__sueldo_base') / 6, 0),
+            output_field=DecimalField(max_digits=10, decimal_places=2)
+        )
+    ).order_by('empleado')
+
+    if not valid_attendances.exists():
+        return JsonResponse({'error': 'No data found for the specified range.'}, status=404)
+
+    response_data = list(valid_attendances.values('empleado__nombre', 'empleado__obra__nombre', 'days_worked', 'total_payment'))
+    print(response_data)
+    return JsonResponse({'data': response_data}, safe=False)
 # ===================================================Aplicacion de RH ===================================================
 
 # Dise;o de RH Dashboard
@@ -627,73 +672,6 @@ def supervisores_obras(request):
 
     return JsonResponse({"data":data}, safe=False)  
 
-@login_required
-def tabla_pagos(request):
-    time_range = request.GET.get('time_range', 'weekly')
-    conjunto = int(request.GET.get('conjunto', 1))
-    today = timezone.now().date()
-
-    # Calcular fechas de inicio y fin basado en el rango de tiempo
-    if time_range == 'weekly' or time_range == 'range':
-        start_date = today - timedelta(weeks=conjunto, days=today.weekday())
-        end_date = start_date + timedelta(days=6)
-    elif time_range == 'monthly':
-        month_first_day = today.replace(day=1) - timedelta(days=31 * (conjunto - 1))
-        last_day = monthrange(month_first_day.year, month_first_day.month)[1]
-        start_date = month_first_day
-        end_date = month_first_day.replace(day=last_day)
-    else:
-        return JsonResponse({'error': 'Rango de tiempo no válido.'}, status=400)
-    # Obtener IDs de las obras activas
-    active_projects_count = Obra.objects.filter(fecha_inicio__lte=today, fecha_fin__gte=today).count()
-    active_obras = Obra.objects.filter(fecha_inicio__lte=today, fecha_fin__gte=today)
-    active_projects_id = active_obras.values('id') 
-
-    # Filtrar asistencias solo de obras activas
-    valid_attendances = Asistencia.objects.filter(
-        fecha__range=(start_date, end_date),
-        entrada__isnull=False,
-        salida__isnull=False,
-        empleado__obra__id__in=active_projects_id
-    ).annotate(
-        days_worked=Count('fecha'),
-        total_payment=ExpressionWrapper(
-            Coalesce(F('days_worked') * (F('empleado__puesto__sueldo_base') / 6), 0),
-            output_field=DecimalField(max_digits=10, decimal_places=2)
-        )
-    ).order_by('empleado')
-
-    response_data = list(valid_attendances.values('empleado__nombre', 'empleado__obra__nombre', 'days_worked', 'total_payment'))
-    pago_empleado = []
-    for key, group in groupby(response_data, key=lambda x: x['empleado__nombre']):
-        pagos = sum(d['total_payment'] for d in group)
-        pago_empleado.append({'empleado': key, 'total_pago': pagos})
-    
-    dias = []
-    for key, group in groupby(response_data, key=lambda x: x['empleado__nombre']):
-        dias_trabajados = sum(d['days_worked'] for d in group)
-        dias.append({'empleado': key, 'dias_trabajados': dias_trabajados})
-    
-    obra = []
-    for key, group in groupby(response_data, key=lambda x: x['empleado__nombre']):
-        obra_trabajada = set(d['empleado__obra__nombre'] for d in group)
-        obra.append({'empleado': key, 'obra': obra_trabajada})
-
-    unificados = []
-    for pago in pago_empleado:
-        empleado_info = pago.copy()  # Hacer una copia para mantener los datos originales intactos
-        # Buscar y añadir información de 'dias'
-        dias_info = next((item for item in dias if item['empleado'] == empleado_info['empleado']), None)
-        if dias_info:
-            empleado_info.update(dias_trabajados=dias_info['dias_trabajados'])
-        
-        # Buscar y añadir información de 'obra'
-        obra_info = next((item for item in obra if item['empleado'] == empleado_info['empleado']), None)
-        if obra_info:
-            # Convertir el set a una lista para compatibilidad
-            empleado_info.update(obra=list(obra_info['obra']))
-        
-        unificados.append(empleado_info)
 
     
     data = []

@@ -54,7 +54,7 @@ urlpatterns = [
     path('progreso_obras', progreso_obras, name='progreso_obras'),
     path('ajax/asistencia_obras/', asistencia_obras, name='asistencia_obras'),
     path('ajax/obras_con_empleados/', obras_con_empleados, name='obras_con_empleados'),
-    path('ajax/tabla_pagos/', tabla_pagos, name='tabla_pagos'),
+    path('tabla_pagos/', tabla_pagos, name='tabla_pagos'),
     path('ajax/supervisores_obras', supervisores_obras, name='supervisores_obras'),
 
     #dashboard RH 
