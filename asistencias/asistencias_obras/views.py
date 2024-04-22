@@ -252,6 +252,7 @@ def attendance_by_week_project(request):
 
     return JsonResponse(attendance_data, safe=False)
 
+#Progreso de las obras Administrador
 @login_required
 def progreso_obras(request):
     try:
@@ -264,12 +265,13 @@ def progreso_obras(request):
             end_date = start_date + timedelta(days=6)
         elif time_range == 'monthly':
             start_date = today.replace(day=1)
-            end_date = today.replace(day=monthrange(today.year, today.month)[1] - 1)
+            end_date = today.replace(day=monthrange(today.year, today.month)[1])
         elif time_range == 'multiweek':
             start_date = today - timedelta(days=today.weekday() + 7 * (conjunto - 1))
             end_date = start_date + timedelta(days=7 * conjunto - 1)
 
-        obras_activas = Obra.objects.filter(fecha_inicio__lte=today, fecha_fin__gte=start_date)
+        # Asegura que las obras sean activas durante el rango de fechas especificado
+        obras_activas = Obra.objects.filter(fecha_inicio__lte=end_date, fecha_fin__gte=start_date)
 
         labels = []
         data = []
@@ -284,8 +286,8 @@ def progreso_obras(request):
 
         return JsonResponse({'labels': labels, 'data': data})
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)  # Provide error message in the response
-
+        return JsonResponse({'error': str(e)}, status=500)  
+    
 @login_required
 def summary_week_data(request):
     time_range = request.GET.get('time_range', 'weekly')
@@ -388,6 +390,53 @@ def tabla_pagos(request):
     response_data = list(valid_attendances.values('empleado__nombre', 'empleado__obra__nombre', 'days_worked', 'total_payment'))
     print(response_data)
     return JsonResponse({'data': response_data}, safe=False)
+
+@login_required
+def supervisores_obras(request):
+    time_range = request.GET.get('time_range', 'weekly')
+    conjunto = int(request.GET.get('conjunto', 1))
+    today = now().date()
+
+    if time_range == 'weekly':
+        start_date = today - timedelta(days=today.weekday() + (conjunto - 1) * 7)
+        end_date = start_date + timedelta(days=6)
+    elif time_range == 'multiweek':
+        start_date = today - timedelta(days=today.weekday())
+        end_date = start_date + timedelta(weeks=conjunto) - timedelta(days=1)
+    elif time_range == 'monthly':
+        if conjunto == 1:
+            start_date = today.replace(day=1)
+        else:
+            start_date = today.replace(day=1)
+            for _ in range(1, conjunto):
+                start_date = (start_date - timedelta(days=1)).replace(day=1)
+        last_day = monthrange(start_date.year, start_date.month)[1]
+        end_date = start_date.replace(day=last_day)
+
+    # Filtrar obras activas en el rango de fechas especificado
+    active_obras = Obra.objects.filter(fecha_inicio__lte=end_date, fecha_fin__gte=start_date)
+    active_projects_id = active_obras.values_list('id', flat=True)
+
+    supervisores = UserProfile.objects.filter(role=RH_ROLE)
+    data = []
+
+    for supervisor in supervisores:
+        obras_activas = supervisor.obras.filter(id__in=active_projects_id)
+        print(f'Supervisor: {supervisor.user.username}, Obras Activas: {[obra.nombre for obra in obras_activas]}')
+        for obra in obras_activas:
+            data.append({
+                'nombre': supervisor.user.username,
+                'obra': obra.nombre
+            })
+    print("Start Date:", start_date)
+    print("End Date:", end_date)
+    print("Active obras IDs:", list(active_projects_id))
+
+    data = sorted(data, key=lambda x: x['obra'])
+    return JsonResponse({"data": data}, safe=False)
+
+
+
 # ===================================================Aplicacion de RH ===================================================
 
 # Dise;o de RH Dashboard
@@ -653,51 +702,6 @@ def progreso_obras_indivual(request):
 
 
 
-@login_required
-def supervisores_obras(request):
-    supervisores = UserProfile.objects.all().filter(role=RH_ROLE)
-    
-    data = []
-
-    for supervisor in supervisores:
-        obras = Obra.objects.all().filter(id__in=supervisor.obras.all().values_list('id', flat=True))
-        
-        for obra in obras:
-
-            data.append({
-                'nombre': supervisor.user.username,
-                'obra': obra.nombre
-            })
-    data = sorted(data, key=lambda x: x['obra'])
-
-    return JsonResponse({"data":data}, safe=False)  
-
-
-    
-    data = []
-    for key, group in groupby(response_data, key=lambda x: x['empleado__obra__nombre']):
-        pagos = sum(d['total_payment'] for d in group)
-        data.append({'obra': key, 'total_pago': pagos})
-    unificados = sorted(unificados, key=lambda x: x['obra'])
-    data = sorted(data, key=lambda x: x['obra'])
-    suma = {}
-    for pago in data:
-        obra = pago['obra']
-        total = pago['total_pago']
-        if obra in suma:
-            suma[obra] += total
-        else:
-            suma[obra] = total
-    resultado = [{'obra': obra, 'total_pago': int(total)} for obra, total in suma.items()]
-
-    obras = []
-    pagos = []
-    
-    for obra in resultado:
-        obras.append(obra['obra'])
-        pagos.append(obra['total_pago'])
-
-    return JsonResponse({'labels': obras, 'data': pagos}, safe=False)
 
 @login_required
 def progreso(request):
