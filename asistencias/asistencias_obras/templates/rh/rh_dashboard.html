@@ -1,17 +1,31 @@
 {% extends "layouts/base_rh.html" %}
 {% block content %}
 <meta name="csrf-token" content="{{ csrf_token }}" />
-<div>
-    <select id="obraSelector" onchange="cambiarObra()">
-        {% for obra in obras %}
-        <option value="{{ obra.id }}" {% if forloop.first %}selected{% endif %}>{{ obra.nombre }}</option>
-        {% endfor %}
-    </select>
-</div>
 
-<div id="dataContainer"></div>
-<div id="chartContainer" style="width: 100%; height: 400px;">
-    <canvas id="attendanceChart"></canvas>
+<div class="container mt-5">
+    <h1 class="text-3xl text-black pb-6">Dashboard</h1>
+    <div class="flex flex-col md:flex-row justify-between items-center p-3 bg-white rounded-lg shadow">
+        <select id="obraSelector" onchange="cambiarObra()">
+            {% for obra in obras %}
+            <option value="{{ obra.id }}" {% if forloop.first %}selected{% endif %}>{{ obra.nombre }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div id="dataContainer"></div>
+    <div class="flex flex-col lg:flex-row justify-between items-stretch mt-3 bg-white">
+        <div id="chartContainer" class="flex-grow lg:w-3/5 xl:w-3/4 p-4 bg-white">
+          <h2 class="mb-2 text-xl lg:text-2xl font-bold">Asistencias por Obras</h2>
+          <div class="h-96"> <!-- Establece una altura fija para el contenedor del gráfico -->
+            <canvas id="attendanceChart"></canvas>
+          </div>
+        </div>
+        <div id="progressChartContainer" class="flex-grow lg:w-3/5 xl:w-3/4 p-4 bg-white">
+          <h2 class="mb-2 text-xl lg:text-2xl font-bold">Progreso de Obras</h2>
+          <div class="h-96">
+            <canvas id="progressChart"></canvas>
+          </div>
+        </div>
+      </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -20,7 +34,8 @@
         cambiarObra();  // Automatically trigger the change when the page loads
     });
 
-    var myChart = null;  // Declare this variable globally to keep track of the chart instance
+    var myChart = null;  // Attendance chart
+    var progressChart = null;  // Progress chart
 
     function cambiarObra() {
         var obraId = document.getElementById('obraSelector').value;
@@ -37,7 +52,6 @@
             })
             .then(data => {
                 displayData(data);
-                // Fetch data for the chart after successfully displaying card data
                 return fetch(`/attendance_by_week_project_RH?obra_id=${obraId}`);
             })
             .then(response => {
@@ -48,6 +62,16 @@
             })
             .then(chartData => {
                 drawChart(chartData);
+                return fetch(`/progreso?id=${obraId}`);  // Fetch progress data
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok for progress data');
+                }
+                return response.json();
+            })
+            .then(progressData => {
+                drawProgressChart(progressData.data[0]);  // Assuming the response structure you defined
             })
             .catch(error => console.error('Error:', error));
     }
@@ -56,56 +80,161 @@
         var container = document.getElementById('dataContainer');
         container.innerHTML = '';  // Clear previous data
         var card = `
-            <div class="card">
-                <div class="card-header">${data.obra}</div>
-                <div class="card-body">
-                    <p>Empleados activos: ${data.active_employees}</p>
-                    <p>Total pagado esta semana: $${data.total_payment_for_week}</p>
-                    <p>Asistencia de la semana: ${data.porcentaje}%</p>
+        <div class="w-full px-6 py-6 mx-auto">
+              <!-- row 1 -->
+              <div class="flex flex-wrap -mx-3">
+                <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
+        <div class="relative flex flex-col min-w-0 break-words bg-white shadow-xl dark:bg-slate-850 dark:shadow-dark-xl rounded-2xl bg-clip-border">
+          <div class="flex-auto p-4">
+            <div class="flex flex-row -mx-3">
+              <div class="flex-none w-2/3 max-w-full px-3">
+                <div>
+                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Nombre:</p>
+                  <h5 class="mb-2 font-bold dark:text-white"> ${data.obra}</h5>
+                  <p class="mb-0 dark:text-white dark:opacity-60">
+                    <span class="text-sm font-bold leading-normal text-emerald-500"></span>
+                  </p>
                 </div>
+              </div>
+              <div class="px-3 text-right basis-1/3">
+                <div class="inline-block w-12 h-12 text-center ">
+                  <i class="ni leading-none ni-money-coins text-lg relative top-3.5 text-white"></i>
+                </div>
+              </div>
             </div>
+          </div>
+        </div>
+      </div>
+      <!-- card2 -->
+       <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
+        <div class="relative flex flex-col min-w-0 break-words bg-white shadow-xl dark:bg-slate-850 dark:shadow-dark-xl rounded-2xl bg-clip-border">
+          <div class="flex-auto p-4">
+            <div class="flex flex-row -mx-3">
+              <div class="flex-none w-2/3 max-w-full px-3">
+                <div>
+                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Empleados Activos</p>
+                  <h5 class="mb-2 font-bold dark:text-white">${data.active_employees}</h5>
+                  <p class="mb-0 dark:text-white dark:opacity-60">
+                    <span class="text-sm font-bold leading-normal text-emerald-500"></span>
+                  </p>
+                </div>
+              </div>
+              <div class="px-3 text-right basis-1/3">
+                <div class="inline-block w-12 h-12 text-center ">
+                  <i class="ni leading-none ni-world text-lg relative top-3.5 text-white"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- card3 -->
+      <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
+        <div class="relative flex flex-col min-w-0 break-words bg-white shadow-xl dark:bg-slate-850 dark:shadow-dark-xl rounded-2xl bg-clip-border">
+          <div class="flex-auto p-4">
+            <div class="flex flex-row -mx-3">
+              <div class="flex-none w-2/3 max-w-full px-3">
+                <div>
+                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Total a Pagar</p>
+                  <h5 class="mb-2 font-bold dark:text-white"> $${data.total_payment_for_week}</h5>
+                  <p class="mb-0 dark:text-white dark:opacity-60">
+                    <span class="text-sm font-bold leading-normal text-red-600"></span>
+                  </p>
+                </div>
+              </div>
+              <div class="px-3 text-right basis-1/3">
+                <div class="inline-block w-12 h-12 text-center rounded-circle bg-gradient-to-tl from-emerald-500 to-teal-400">
+                  <i class="ni leading-none ni-paper-diploma text-lg relative top-3.5 text-white"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- card4 -->
+      <div class="w-full max-w-full px-3 sm:w-1/2 sm:flex-none xl:w-1/4">
+        <div class="relative flex flex-col min-w-0 break-words bg-white shadow-xl dark:bg-slate-850 dark:shadow-dark-xl rounded-2xl bg-clip-border">
+          <div class="flex-auto p-4">
+            <div class="flex flex-row -mx-3">
+              <div class="flex-none w-2/3 max-w-full px-3">
+                <div>
+                  <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Porcentaje de asistencia</p>
+                  <h5 class="mb-2 font-bold dark:text-white"> ${data.porcentaje}%</h5>
+                  <p class="mb-0 dark:text-white dark:opacity-60">
+                    <span class="text-sm font-bold leading-normal text-emerald-500"></span>
+                  </p>
+                </div>
+              </div>
+              <div class="px-3 text-right basis-1/3">
+                <div class="inline-block w-12 h-12 text-center rounded-circle bg-gradient-to-tl from-orange-500 to-yellow-500">
+                  <i class="ni leading-none ni-cart text-lg relative top-3.5 text-white"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>   
         `;
         container.innerHTML = card;
     }
 
     function drawChart(chartData) {
-    const ctx = document.getElementById('attendanceChart').getContext('2d');
-    // Check if a chart instance exists
-    if (myChart) {
-        myChart.destroy();  // Destroy the existing chart instance if present
-    }
-    myChart = new Chart(ctx, {
-        type: 'line',  // Change to line to create an area chart
-        data: {
-            labels: chartData.labels,
-            datasets: [{
-                label: 'Asistencia por categoría',
-                data: chartData.data,
-                backgroundColor: [
-                    'rgba(255, 99, 132, 0.2)',
-                    'rgba(54, 162, 235, 0.2)',
-                    'rgba(255, 206, 86, 0.2)'
-                ],
-                borderColor: [
-                    'rgba(255, 99, 132, 1)',
-                    'rgba(54, 162, 235, 1)',
-                    'rgba(255, 206, 86, 1)'
-                ],
-                borderWidth: 1,
-                fill: true  // Set fill to true for area effect
-            }]
-        },
-        options: {
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    stacked: true  // Enable stacking
+        const ctx = document.getElementById('attendanceChart').getContext('2d');
+        if (myChart) {
+            myChart.destroy();
+        }
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartData.labels,
+                datasets: [{
+                    label: 'Asistencia por categoría',
+                    data: chartData.data,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 206, 86, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)'
+                    ],
+                    borderWidth: 1,
+                    fill: true
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        stacked: true
+                    }
                 }
             }
-        }
-    });
-}
+        });
+    }
 
+    function drawProgressChart(progressData) {
+        const ctx = document.getElementById('progressChart').getContext('2d');
+        if (progressChart) {
+            progressChart.destroy();
+        }
+        progressChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Completado', 'Restante'],
+                datasets: [{
+                    label: 'Progreso de la Obra',
+                    data: [progressData.porcentaje, progressData.restante],
+                    backgroundColor: ['rgba(75, 192, 192, 0.2)', 'rgba(255, 99, 132, 0.2)'],
+                    borderColor: ['rgba(75, 192, 192, 1)', 'rgba(255, 99, 132, 1)'],
+                    borderWidth: 1
+                }]
+            }
+        });
+    }
 </script>
 
 {% endblock %}

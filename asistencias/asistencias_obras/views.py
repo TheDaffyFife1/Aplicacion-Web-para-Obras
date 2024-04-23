@@ -717,27 +717,28 @@ def progreso(request):
     data = []
 
     if user.role == RH_ROLE:
-        obra = Obra.objects.filter(id=obra_id)
-        
-        total = (obra.fecha_fin - obra.fecha_inicio).days
-        
-        transcurrido = (hoy.date() - obra.fecha_inicio).days
+        try:
+            obra = Obra.objects.get(id=obra_id)  # Use get() to retrieve a single instance
+            total = (obra.fecha_fin - obra.fecha_inicio).days
+            transcurrido = (hoy.date() - obra.fecha_inicio).days
 
-        if transcurrido > 0:
-            porcenaje = (transcurrido / total) * 100 if total else 0
-            if porcenaje > 100:
-                porcenaje = 100
-                resto = 0
-            resto = 100 - porcenaje
-            porcenaje = round(porcenaje, 2)
-            resto = round(resto, 2)
-            data.append({
+            if transcurrido > 0:
+                porcentaje = (transcurrido / total) * 100 if total else 0
+                if porcentaje > 100:
+                    porcentaje = 100
+                    resto = 0
+                else:
+                    resto = 100 - porcentaje
+                porcentaje = round(porcentaje, 2)
+                resto = round(resto, 2)
+                data.append({
                     'obra_nombre': obra.nombre,
-                    'porcentaje': porcenaje,
+                    'porcentaje': porcentaje,
                     'restante': resto
                 })
-    return JsonResponse({'data':data}, safe=False)     
-
+        except Obra.DoesNotExist:
+            return JsonResponse({'error': 'Obra not found'}, status=404)
+    return JsonResponse({'data': data}, safe=False)
 
 
 @login_required
