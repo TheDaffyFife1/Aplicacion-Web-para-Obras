@@ -17,7 +17,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path
-from asistencias_obras.views import asistencia_obras, attendance_by_week_project_RH, empleados_rh, obras_con_empleados, progreso, progreso_obras, progreso_obras_indivual, reporte_asistencia,editar_empleado,lista_obras,accesos, register, admin_dashboard, rh_dashboard, summary_week_data_RH, supervisores_obras, tabla_pagos, user_asistencia,crear_obra,cambiar_estado_obra, eliminar_obra, editar_obra,lista_user_profiles,asignar_obra_a_usuario,lista_empleados,crear_empleado
+from asistencias_obras.views import asistencia_obras, attendance_by_week_project_RH, obras_con_empleados, progreso, progreso_obras, progreso_obras_indivual, reporte_asistencia,editar_empleado,lista_obras,accesos, register, admin_dashboard, rh_dashboard, summary_week_data_RH, supervisores_obras, tabla_pagos, user_asistencia,crear_obra,cambiar_estado_obra, eliminar_obra, editar_obra,lista_user_profiles,asignar_obra_a_usuario,lista_empleados,crear_empleado
 from django.contrib.auth import views as auth_views
 from asistencias_obras import views
 from asistencias_obras.api import registrar_asistencia
@@ -59,9 +59,8 @@ urlpatterns = [
 
     #dashboard RH 
     path('ajax/progreso_obra/', progreso, name='progreso'),
-    path('ajax/empleados_rh/', empleados_rh, name='empleados_rh'),
-    path('ajax/summary_week_RH/', summary_week_data_RH, name='summary_week_data_RH'),
-    path('ajax/attendance_by_week_project_RH/', attendance_by_week_project_RH, name='attendance_by_week_project_RH'),
+    path('summary_week_data_RH/', summary_week_data_RH, name='summary_week_data_RH'),
+    path('attendance_by_week_project_RH', attendance_by_week_project_RH, name='attendance_by_week_project_RH'),
     # ... other paths ...
 ]
 

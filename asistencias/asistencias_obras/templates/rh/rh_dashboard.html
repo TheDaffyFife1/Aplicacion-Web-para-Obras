@@ -1,215 +1,111 @@
 {% extends "layouts/base_rh.html" %}
 {% block content %}
 <meta name="csrf-token" content="{{ csrf_token }}" />
-
-<head>
-    <!-- Bootstrap CSS -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css">
-<!-- DataTables Bootstrap 5 CSS -->
-<link rel="stylesheet" href="https://cdn.datatables.net/2.0.3/css/dataTables.bootstrap5.css">
-
-</head>
-<div class="flex items-center justify-between">
-  <h1 class="text-3xl text-black">Dashboard</h1>
-
-  <div>
-      <label for="obra-select" class="mr-2">Seleccione una obra:</label>
-      <select id="obra-select" name="obra" onchange="guardarSeleccion()" class="mr-2">
-          {% for obra in obras %}
-          <option value="{{ obra.id }}">{{ obra.nombre }}</option>
-          {% endfor %}
-      </select>
-      <button type="button" class="btn btn-dark" onclick="cargarDatosObra(document.getElementById('obra-select').value)">Cargar Datos</button>
-  </div>
+<div>
+    <select id="obraSelector" onchange="cambiarObra()">
+        {% for obra in obras %}
+        <option value="{{ obra.id }}" {% if forloop.first %}selected{% endif %}>{{ obra.nombre }}</option>
+        {% endfor %}
+    </select>
 </div>
 
-<div class="max-w-full px-6 py-6 mx-auto" id="summary-info"></div>
-
-
-
-<div class="p-4 rounded-lg" >
-  <div class="p-4 bg-white shadow-md rounded-lg">
-      <p class="text-xl pb-3 flex items-center">
-          <i class="fas fa-plus mr-3"></i> Asistencia por Jornada
-      </p>
-      <div class="w-full flex justify-center">
-          <canvas id="jornada_laboral" class="w-full"></canvas>
-      <div class="w-full flex justify-center">
-
-      </div>
-  </div>
+<div id="dataContainer"></div>
+<div id="chartContainer" style="width: 100%; height: 400px;">
+    <canvas id="attendanceChart"></canvas>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-
-
-
-<div class="p-4 rounded-lg" >
-    <div class="p-4 bg-white shadow-md rounded-lg">
-        <p class="text-xl pb-3 flex items-center">
-            <i class="fas fa-plus mr-3"></i> Progreso de obra
-        </p>
-        <div class="w-full flex justify-center">
-            <canvas id="progreso_obra" class="w-full"></canvas>
-        <div class="w-full flex justify-center">
-
-        </div>
-    </div>
-</div>
-
-
-
-
-
-
-
-    <!-- jQuery -->
-<script src="https://code.jquery.com/jquery-3.7.1.js"></script>
-<!-- Bootstrap Bundle JS (incluye Popper) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-<!-- DataTables JS -->
-<script src="https://cdn.datatables.net/2.0.3/js/dataTables.js"></script>
-<!-- DataTables Bootstrap 5 JS -->
-<script src="https://cdn.datatables.net/2.0.3/js/dataTables.bootstrap5.js"></script>
-
-                
-<script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js"defer ></script>
-<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-
-<script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
-                <!-- Font Awesome -->
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js" integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin="anonymous"></script>
-                <!-- ChartJS -->
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js" integrity="sha256-R4pqcOYV8lt7snxMQO/HSbVCFRPMdrhAFMH+vr9giYI=" crossorigin="anonymous"></script>
-
-                <script>
-                  function guardarSeleccion() {
-                      var obraId = document.getElementById('obra-select').value;
-                      localStorage.setItem('obraId', obraId);
-                  }
-
-                  function recuperarSeleccion() {
-                      var obraId = localStorage.getItem('obraId');
-                      if (obraId) {
-                          document.getElementById('obra-select').value = obraId;
-                      }
-                  }
-                  window.onload = recuperarSeleccion;
-
-                  function cargarDatosObra(obraId) {
-                      console.log('acaaa',obraId);
-                      window.location.href = `{% url 'rh_dashboard' %}?obra_id=${obraId}`;
-                  }
-                  </script>               
 <script>
-  $(document).ready(function() {
-      // Evento de cambio para el selector de obras
-      $('#obra-select').change(function() {
-          var obraId = $(this).val(); // Obtiene el ID de la obra seleccionada
-          console.log('Obra seleccionada:', obraId);
-  
-          if (!obraId) {
-              console.error("No se ha seleccionado una obra.");
-              return;
-          }
-  
-          // Llamada AJAX para el gráfico de asistencia por semana
-          cargarDatosAsistencia(obraId);
-          
-          // Llamada AJAX para el resumen semanal
-          cargarResumenSemanal(obraId);
-      });
-  
-      // Dispara el evento de cambio en la carga inicial para cargar los datos de la obra predeterminada
-      $('#obra-select').trigger('change');
-  });
-  
-  function cargarDatosAsistencia(obraId) {
-    $.ajax({
-        url: '/ajax/attendance_by_week_project_RH/?obra_id=' + obraId,
-        type: 'GET',
-        dataType: 'json',
-        success: function(response) {
-            actualizarGraficoAsistencia(response.data, response.labels);
+    document.addEventListener('DOMContentLoaded', function() {
+        cambiarObra();  // Automatically trigger the change when the page loads
+    });
+
+    var myChart = null;  // Declare this variable globally to keep track of the chart instance
+
+    function cambiarObra() {
+        var obraId = document.getElementById('obraSelector').value;
+        if (!obraId || obraId === 'undefined') {
+            console.error('Invalid obraId:', obraId);
+            return;  // Stop the function if obraId is invalid
+        }
+        fetch(`/summary_week_data_RH?obra_id=${obraId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                displayData(data);
+                // Fetch data for the chart after successfully displaying card data
+                return fetch(`/attendance_by_week_project_RH?obra_id=${obraId}`);
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok for chart data');
+                }
+                return response.json();
+            })
+            .then(chartData => {
+                drawChart(chartData);
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    function displayData(data) {
+        var container = document.getElementById('dataContainer');
+        container.innerHTML = '';  // Clear previous data
+        var card = `
+            <div class="card">
+                <div class="card-header">${data.obra}</div>
+                <div class="card-body">
+                    <p>Empleados activos: ${data.active_employees}</p>
+                    <p>Total pagado esta semana: $${data.total_payment_for_week}</p>
+                    <p>Asistencia de la semana: ${data.porcentaje}%</p>
+                </div>
+            </div>
+        `;
+        container.innerHTML = card;
+    }
+
+    function drawChart(chartData) {
+    const ctx = document.getElementById('attendanceChart').getContext('2d');
+    // Check if a chart instance exists
+    if (myChart) {
+        myChart.destroy();  // Destroy the existing chart instance if present
+    }
+    myChart = new Chart(ctx, {
+        type: 'line',  // Change to line to create an area chart
+        data: {
+            labels: chartData.labels,
+            datasets: [{
+                label: 'Asistencia por categoría',
+                data: chartData.data,
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.2)',
+                    'rgba(54, 162, 235, 0.2)',
+                    'rgba(255, 206, 86, 0.2)'
+                ],
+                borderColor: [
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 206, 86, 1)'
+                ],
+                borderWidth: 1,
+                fill: true  // Set fill to true for area effect
+            }]
         },
-        error: function(xhr, status, error) {
-            console.error("Error en AJAX:", xhr, status, error);
-            alert("Error al cargar datos: " + xhr.responseJSON.error);
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    stacked: true  // Enable stacking
+                }
+            }
         }
     });
-}   
-  
-  function actualizarGraficoAsistencia(data, labels) {
-      var ctx = document.getElementById("jornada_laboral").getContext("2d");
-      if (window.attendanceChart) {
-          window.attendanceChart.destroy();
-      }
-      window.attendanceChart = new Chart(ctx, {
-          type: 'line',
-          data: {
-              labels: labels,
-              datasets: [{
-                  label: 'Asistencias',
-                  data: data,
-                  backgroundColor: "rgba(255, 99, 132, 0.2)",
-                  borderColor: "rgba(255, 99, 132, 1)",
-                  borderWidth: 2,
-                  fill: false,
-                  tension: 0
-              }]
-          },
-          options: {
-              scales: {
-                  y: {
-                      beginAtZero: true
-                  }
-              },
-              responsive: true,
-              maintainAspectRatio: false
-          }
-      });
-  }
-  
-  function cargarResumenSemanal(obraId) {
-      fetch(`/ajax/summary_week_RH/?obra_id=${obraId}`)
-      .then((response) => response.json())
-      .then((data) => {
-          const summaryContainer = document.getElementById("summary-info");
-          summaryContainer.innerHTML = `
-              <div class="w-full px-6 py-6 mx-auto">
-                <!-- row 1 -->
-                <div class="flex flex-wrap -mx-3">
-                  <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
-          <div class="relative flex flex-col min-w-0 break-words bg-white shadow-xl dark:bg-slate-850 dark:shadow-dark-xl rounded-2xl bg-clip-border">
-            <div class="flex-auto p-4">
-              <div class="flex flex-row -mx-3">
-                <div class="flex-none w-2/3 max-w-full px-3">
-                  <div>
-                    <p class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">Obra:</p>
-                    <h5 class="mb-2 font-bold dark:text-white"> ${data.obra}</h5>
-                    <p class="mb-0 dark:text-white dark:opacity-60">
-                      <span class="text-sm font-bold leading-normal text-emerald-500"></span>
-                    </p>
-                  </div>
-                </div>
-                <div class="px-3 text-right basis-1/3">
-                  <div class="inline-block w-12 h-12 text-center ">
-                    <i class="ni leading-none ni-money-coins text-lg relative top-3.5 text-white"></i>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- card2 and so on for other cards as necessary -->
-      </div>
-      `;
-      })
-      .catch((error) => console.error("Error:", error));
-  }
-  </script>
-n             
-                
-                
-                
-               
-{% endblock %}  
+}
+
+</script>
+
+{% endblock %}

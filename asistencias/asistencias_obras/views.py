@@ -438,6 +438,8 @@ def supervisores_obras(request):
 
 
 # ===================================================Aplicacion de RH ===================================================
+def is_ajax(request):
+    return request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
 # Dise;o de RH Dashboard
 @login_required
@@ -446,21 +448,25 @@ def rh_dashboard(request):
     if user_profile.role == RH_ROLE:
         obras = user_profile.obras.all()
         if obras.exists():
-            selected_obra_id = request.GET.get('obra_id')
-            if selected_obra_id:
-                try:
-                    selected_obra = obras.get(id=selected_obra_id)
-                    # Aquí puedes procesar la información específica de la obra seleccionada
-                    # y luego pasar esos datos al template
-                except obras.model.DoesNotExist:
-                    return HttpResponseBadRequest("Obra no encontrada.")
-            # Si no se especifica obra_id, se pueden mostrar todas o ninguna
-            return render(request, 'rh/rh_dashboard.html', {'obras': obras})
+            selected_obra_id = request.GET.get('obra_id', obras.first().id)  # Obra predeterminada si no se especifica
+            try:
+                selected_obra = obras.get(id=selected_obra_id)
+                if is_ajax(request):  # Usa la función is_ajax aquí
+                    obra_data = {
+                        'id': selected_obra.id,
+                        'nombre': selected_obra.nombre,
+                        # Agrega más datos según necesites
+                    }
+                    return JsonResponse(obra_data)
+                # Renderizar página normalmente si no es una petición AJAX
+                return render(request, 'rh/rh_dashboard.html', {'obras': obras, 'selected_obra': selected_obra})
+            except obras.model.DoesNotExist:
+                return HttpResponseBadRequest("Obra no encontrada.")
         else:
             return HttpResponseForbidden("Este usuario de RH no tiene obras asignadas.")
     else:
         return HttpResponseForbidden("No tienes permiso para ver esta página.")
-
+    
 @login_required
 def lista_empleados(request):
     user_profile = request.user.userprofile
@@ -732,151 +738,106 @@ def progreso(request):
                 })
     return JsonResponse({'data':data}, safe=False)     
 
-@login_required
-def empleados_rh(request):
-    user = request.user.userprofile
-    data = []
-
-    if user.role == RH_ROLE:
-        obra = user.obra_id
-        empleados = Empleado.objects.filter(obra=obra)
-        for empleado in empleados:
-            data.append({
-                'nombre': empleado.nombre,
-                'apellido': empleado.apellido,
-                'puesto': empleado.puesto.nombre,
-                'sueldo': empleado.sueldo
-            })
-
-    return JsonResponse({'data': data}, safe=False)
 
 
 @login_required
 def summary_week_data_RH(request):
     obra_id = request.GET.get('obra_id')
     user = request.user.userprofile
-    data = []
+    if user.role != RH_ROLE:
+        return HttpResponseBadRequest("Acceso no autorizado.")
 
-    if user.role == RH_ROLE:
-        obra = get_object_or_404(Obra, id=obra_id)
-        today = timezone.now().date()
-        this_week_start = today - timezone.timedelta(days=today.weekday())
-        this_week_end = this_week_start + timezone.timedelta(days=6)
+    obra = get_object_or_404(Obra, id=obra_id)
+    today = timezone.now().date()
+    this_week_start = today - timezone.timedelta(days=today.weekday())
+    this_week_end = this_week_start + timezone.timedelta(days=6)
 
+    valid_attendances_week = Asistencia.objects.filter(
+    fecha__gte=this_week_start,
+    fecha__lte=this_week_end,
+    empleado__obra_id=obra_id,  # Ajuste aquí
+    entrada__isnull=False,
+    salida__isnull=False
+).values('empleado', 'fecha').annotate(daily_payment=Sum('empleado__sueldo')/6).order_by('empleado')
+    
+    total_payment_for_week = sum(attendance['daily_payment'] for attendance in valid_attendances_week)
+    total_payment_for_week = round(total_payment_for_week, 2)
+    active_employees_count = Empleado.objects.filter(obra=obra).distinct().count()
 
-        # Asistencia válida para la semana actual
-        valid_attendances_week = Asistencia.objects.filter(
-            fecha__gte=this_week_start,
-            fecha__lte=this_week_end,
-            entrada__isnull=False,
-            salida__isnull=False
-        ).values('empleado', 'fecha').annotate(daily_payment=Sum(F('empleado__sueldo')/6)).order_by('empleado')
+    porcentaje_asistencia = (len(valid_attendances_week) / active_employees_count) * 100 if active_employees_count > 0 else 0
 
-        # Inicializar el total del pago para la semana
-        total_payment_for_week = 0
-
-        # Calcular el sueldo total de la semana basado en la asistencia válida
-        for attendance in valid_attendances_week:
-            total_payment_for_week += attendance['daily_payment']
-
-        total_payment_for_week = round(total_payment_for_week, 2)
-        active_employees_count = Empleado.objects.filter(obra=obra_id).distinct().count()
-
-
-
-        data = attendance_by_week_project_RH(request)
-        data = json.loads(data.content)
-
-        data = data['data']
-
-        asistencia = data[0] + data[1]
-        porcentaje = (asistencia/active_employees_count) * 100
-
-
-
-        # Contar proyectos y empleados activos
-
-        data = {
-            'obra' : obra.nombre,
-            'active_employees': active_employees_count,
-            'total_payment_for_week': total_payment_for_week,
-            'porcentaje': int(porcentaje)
-
-        }
+    data = {
+        'obra': obra.nombre,
+        'active_employees': active_employees_count,
+        'total_payment_for_week': total_payment_for_week,
+        'porcentaje': int(porcentaje_asistencia)
+    }
 
     return JsonResponse(data, safe=False)
 
 @login_required
 def attendance_by_week_project_RH(request):
     obra_id = request.GET.get('obra_id', None)
+    if not obra_id:
+        return HttpResponseBadRequest("No se proporcionó un ID de obra válido.")
 
     user = request.user.userprofile
-   
-    if user.role == RH_ROLE:
-        #obra = get_object_or_404(Obra, id=obra_id)
-        
-        # Obtener la fecha de inicio y fin de la semana actual
-        today = timezone.now().date()
-        week_start = today - timezone.timedelta(days=today.weekday())  # Lunes
-        week_end = week_start + timezone.timedelta(days=6)  # Domingo
+    if user.role != RH_ROLE:
+        return HttpResponseBadRequest("No autorizado.")
 
-        # Ajustar la consulta para calcular asistencia semanal por proyecto
-        attendance_data = Obra.objects.filter(id=obra_id).annotate(
-            full_time=Count(
-                Case(
-                    When(
-                        empleado__asistencia__entrada__isnull=False, 
-                        empleado__asistencia__salida__isnull=False, 
-                        empleado__asistencia__fecha__range=(week_start, week_end),
-                        then=1
-                    )
-                )
-            ),
-            part_time=Count(
-                Case(
-                    When(
-                        empleado__asistencia__entrada__isnull=False, 
-                        empleado__asistencia__salida__isnull=True, 
-                        empleado__asistencia__fecha__range=(week_start, week_end),
-                        then=1
-                    )
-                )
-            ),
-            not_attended=Count(
-                Case(
-                    When(
-                        empleado__asistencia__entrada__isnull=True, 
-                        empleado__asistencia__fecha__range=(week_start, week_end),
-                        then=1
-                    )
+    obra = get_object_or_404(Obra, id=obra_id)
+    
+    today = timezone.now().date()
+    week_start = today - timezone.timedelta(days=today.weekday())
+    week_end = week_start + timezone.timedelta(days=6)
+
+    # Ensure that the attendance_data QuerySet is properly used
+    attendance_data = Obra.objects.filter(id=obra_id).annotate(
+        full_time=Count(
+            Case(
+                When(
+                    Q(empleado__asistencia__entrada__isnull=False) & 
+                    Q(empleado__asistencia__salida__isnull=False) & 
+                    Q(empleado__asistencia__fecha__range=(week_start, week_end)),
+                    then=1
                 )
             )
-            
-        ).values('full_time', 'part_time', 'not_attended')
+        ),
+        part_time=Count(
+            Case(
+                When(
+                    Q(empleado__asistencia__entrada__isnull=False) & 
+                    Q(empleado__asistencia__salida__isnull=True) & 
+                    Q(empleado__asistencia__fecha__range=(week_start, week_end)),
+                    then=1
+                )
+            )
+        ),
+        not_attended=Count(
+            Case(
+                When(
+                    Q(empleado__asistencia__entrada__isnull=True) & 
+                    Q(empleado__asistencia__fecha__range=(week_start, week_end)),
+                    then=1
+                )
+            )
+        )
+    ).values('full_time', 'part_time', 'not_attended')[0]  # Use indexing after values()
 
-        active_employees_count = Empleado.objects.filter(obra=obra_id).distinct().count()
+    active_employees_count = Empleado.objects.filter(obra=obra).distinct().count()
 
-    attendance_data = list(attendance_data)
-    key = []
-    values = []
-    for data in attendance_data:
-        key.append(list(data.keys()))
-        values.append(list(data.values()))
-    
+    # Simplify data aggregation and usage
+    faltas = active_employees_count - sum(attendance_data.values())
+    data = {
+        'labels': ['Jornadas completas', 'Jornada Incompleta', 'Sin Asistencia'],
+        'data': [
+            attendance_data['full_time'],
+            attendance_data['part_time'],
+            faltas
+        ]
+    }
 
-    key = [item for sublist in key for item in sublist]
-    values = [item for sublist in values for item in sublist]
-    a = sum(values)
-    faltas = active_employees_count - a
-    values[-1] = faltas 
-
-    key[0] = 'Jornadas completas'
-    key[1] = 'Jornada Incompleta'
-    key[2] = 'Sin Asistencia'
-
-
-    return JsonResponse({'labels': key ,'data':values}, safe=False)
-
+    return JsonResponse(data)
 
 # =============================================== Funciones para Supervisor =====================================================
 @login_required
