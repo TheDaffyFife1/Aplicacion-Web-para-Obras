@@ -12,5 +12,5 @@ Este proyecto es una aplicación web diseñada para mejorar la eficacia operacio
 ## Tecnologías Utilizadas
 - **Frontend:** HTML, CSS con Tailwind CSS
 - **Backend:** Django
-- **Base de Datos:** PostgreSQL
+- **Base de Datos:** MySql 
 - **Servidor:** Configurado en un sistema operativo Linux, utilizando Gunicorn como servidor WSGI y Nginx como servidor web.
