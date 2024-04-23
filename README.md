@@ -10,7 +10,7 @@ Este proyecto es una aplicación web diseñada para mejorar la eficacia operacio
 - **Interfaz Amigable:** Diseño intuitivo y fácil de usar, adecuado para todos los niveles de experiencia tecnológica.
 
 ## Tecnologías Utilizadas
-- **Frontend:** HTML, CSS con Tailwind CSS
+- **Frontend:** HTML, CSS con Tailwind CSS, Javascript
 - **Backend:** Django
 - **Base de Datos:** MySql 
 - **Servidor:** Configurado en un sistema operativo Linux, utilizando Gunicorn como servidor WSGI y Nginx como servidor web.
