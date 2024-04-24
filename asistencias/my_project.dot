@@ -4,15 +4,15 @@ digraph model_graph {
   // Cli Options: -a --dot
 
   fontname = "Roboto"
-  fontsize = 12 // Aumentado para mejor visualización
+  fontsize = 20 // Aumentado para mejor visualización
   splines  = true
   rankdir = "TB"
-  size="8.5,11"
+  size="10,15"
   ratio="fill"
 
   node [
     fontname = "Roboto"
-    fontsize = 12 // Aumentado para mejor visualización
+    fontsize = 20 // Aumentado para mejor visualización
     shape = "plaintext"
   ]
 
