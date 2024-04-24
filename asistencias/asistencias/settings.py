@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'widget_tweaks',
+    'django_extensions',
+
 
 ]
 
@@ -90,10 +92,10 @@ LOGIN_REDIRECT_URL = 'accesos'
 DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'generica',
-            'USER': 'admin-rimgsas',
-            'PASSWORD': '0dk5Bh9?1',
-            'HOST': 'rimgsa.com',
+            'NAME': 'obras_ff',
+            'USER': 'admin',
+            'PASSWORD': 'F@c3b00k',
+            'HOST': '158.69.26.160',
             'PORT': '3306',
         }
     }
