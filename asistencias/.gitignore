@@ -2,4 +2,6 @@ venv
 env
 asistencias_obras/__pycache__
 asistencias/__pycache__
+*pyc 
+asistencias/asistencias/settings.py
 
