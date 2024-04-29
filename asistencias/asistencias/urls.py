@@ -56,11 +56,11 @@ urlpatterns = [
     path('ajax/obras_con_empleados/', obras_con_empleados, name='obras_con_empleados'),
     path('tabla_pagos/', tabla_pagos, name='tabla_pagos'),
     path('supervisores_obras', supervisores_obras, name='supervisores_obras'),
-
-    #dashboard RH 
     path('progreso/', progreso, name='progreso'),
     path('summary_week_data_RH/', summary_week_data_RH, name='summary_week_data_RH'),
     path('attendance_by_week_project_RH', attendance_by_week_project_RH, name='attendance_by_week_project_RH'),
+    path('admin/', admin.site.urls),
+
     # ... other paths ...
 ]
 

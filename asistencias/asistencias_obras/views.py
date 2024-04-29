@@ -335,6 +335,7 @@ def summary_week_data(request):
     asistencia = [d['full_time'] + d['part_time'] for d in data]
     total = [d['total_employees'] for d in data]
     porcentaje = (sum(asistencia) / sum(total) * 100) if total and sum(total) > 0 else 0
+    porcentaje = min(porcentaje, 100)  # Asegura que el porcentaje no sea mayor que 100
     print("Total payment type:", type(total_payment_float))
     # En Django
     return JsonResponse({
