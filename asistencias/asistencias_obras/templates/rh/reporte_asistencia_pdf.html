@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte de Asistencia</title>
+    <style>
+        body { font-family: "Arial", sans-serif; margin: 20px; background-color: #f9f9f9; color: #333; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .footer { text-align: center; margin-top: 20px; font-size: 0.8em; }
+        img { height: 50px; width: 50px; object-fit: cover; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Reporte de Asistencia</h1>
+        <h2>Obra: {{ obra.nombre }}</h2>
+        <p>Reporte generado el: {{ "now"|date:"d/m/Y" }}</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Foto</th>
+                <th>Lunes</th>
+                <th>Martes</th>
+                <th>Miércoles</th>
+                <th>Jueves</th>
+                <th>Viernes</th>
+                <th>Sábado</th>
+                <th>Sueldo</th>
+                <th>Total a Pagar</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for empleado in empleados %}
+            <tr>
+                <td>{{ empleado.nombre }}</td>
+                <td>
+                    {% if empleado.foto_url %}
+                        <img src="{{ empleado.foto_url }}" alt="Foto de {{ empleado.nombre }}">
+                    {% else %}
+                        Sin Foto
+                    {% endif %}
+                </td>
+                {% for dia in empleado.asistencias.values %}
+                    <td>
+                        {% if dia.entrada %}
+                            Entrada: {{ dia.entrada|date:"H:i" }}<br>
+                        {% endif %}
+                        {% if dia.salida %}
+                            Salida: {{ dia.salida|date:"H:i" }}
+                        {% else %}
+                            No asistió
+                        {% endif %}
+                    </td>
+                {% endfor %}
+                <td>{{ empleado.sueldo|floatformat:"2" }}</td>
+                <td>{{ empleado.total_semanal|floatformat:"2" }}</td>
+                
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <p>Reporte de Asistencia proporcionado por el departamento de Recursos Humanos.</p>
+    </div>
+</body>
+</html>

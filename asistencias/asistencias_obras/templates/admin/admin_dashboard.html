@@ -257,56 +257,67 @@ function fetchAttendanceData() {
     fetch(`/attendance_by_week_project?time_range=${timeRange}&conjunto=${conjunto}`)
       .then(response => response.json())
       .then(data => {
-        const labels = data.map(obra => obra.nombre);
-        const fullTime = data.map(obra => obra.full_time);
-        const partTime = data.map(obra => obra.part_time);
-        const notAttended = data.map(obra => obra.not_attended);
+        if (!data || !data.weekly_data || !data.weekly_data.length) {
+          throw new Error('Invalid or empty data received');
+        }
+
+        const projectsData = data.weekly_data.map(project => {
+            const dates = project.daily_attendance.map(entry => entry.date);
+            const fullTime = project.daily_attendance.map(entry => entry.attended); // Assuming 'attended' means full-time
+            const partTime = project.daily_attendance.map(entry => project.total_employees - entry.attended - entry.not_attended);
+            const notAttended = project.daily_attendance.map(entry => entry.not_attended);
+            return {
+                label: project.project_name,
+                dates,
+                fullTime,
+                partTime,
+                notAttended
+            };
+        });
 
         if (attendanceChart) {
-          attendanceChart.destroy(); // Destroy the existing chart before creating a new one
+            attendanceChart.destroy();
         }
 
         const ctx = document.getElementById('attendanceChart').getContext('2d');
         attendanceChart = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: labels,
-            datasets: [{
-              label: 'Jornada Completa',
-              data: fullTime,
-              backgroundColor: 'rgba(54, 162, 235, 0.2)',
-              borderColor: 'rgba(54, 162, 235, 1)',
-              borderWidth: 1
-            }, {
-              label: 'Media Jornada',
-              data: partTime,
-              backgroundColor: 'rgba(255, 206, 86, 0.2)',
-              borderColor: 'rgba(255, 206, 86, 1)',
-              borderWidth: 1
-            }, {
-              label: 'No asistio',
-              data: notAttended,
-              backgroundColor: 'rgba(255, 99, 132, 0.2)',
-              borderColor: 'rgba(255, 99, 132, 1)',
-              borderWidth: 1
-            }]
-          },
-          options: {
-            responsive: true, // Asegurarse de que la gráfica sea responsiva
-            maintainAspectRatio: false,  // Permitir que la gráfica se ajuste completamente al contenedor
-            scales: {
-              y: {
-                beginAtZero: true
-              }
+            type: 'line',
+            data: {
+                labels: projectsData[0].dates, // Assuming all projects have the same date labels
+                datasets: projectsData.map((project, index) => {
+                    const colors = [
+                        'rgba(54, 162, 235, 0.5)', // blue
+                        'rgba(255, 206, 86, 0.5)', // yellow
+                        'rgba(255, 99, 132, 0.5)', // red
+                        'rgba(75, 192, 192, 0.5)', // green
+                        'rgba(153, 102, 255, 0.5)', // purple
+                        'rgba(255, 159, 64, 0.5)'  // orange
+                    ];
+                    return {
+                        label: `${project.label} Full Time`,
+                        data: project.fullTime,
+                        borderColor: colors[index % colors.length],
+                        fill: false
+                    };
+                })
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
             }
-          }
         });
       })
       .catch(error => {
         console.error('Error fetching attendance data:', error);
         document.getElementById('result2').innerHTML = 'Error fetching attendance data. Please try again.';
       });
-  }
+}
+
   function fetchProgressData() {
     fetch(`/progreso_obras?time_range=${timeRange}&conjunto=${conjunto}`)
         .then(response => response.json())

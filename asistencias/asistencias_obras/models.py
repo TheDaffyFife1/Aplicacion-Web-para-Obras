@@ -135,7 +135,11 @@ class UserProfile(models.Model):
         return self.user.username
     
 class Asistencia(models.Model):
-    empleado = models.ForeignKey(Empleado, on_delete=models.CASCADE)
+    empleado = models.ForeignKey(
+        'Empleado',  # Use a string if Empleado is defined later in the file or imported from another module
+        on_delete=models.CASCADE,
+        related_name='asistencias'  # This is the name you use in prefetch_related
+    )
     fecha = models.DateField(default=timezone.now)
     entrada = models.DateTimeField(null=True, blank=True)
     salida = models.DateTimeField(null=True, blank=True)

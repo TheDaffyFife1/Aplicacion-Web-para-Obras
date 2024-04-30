@@ -6,14 +6,18 @@
 <h1 class="text-3xl text-black pb-6">Empleados</h1>
 
 <!-- Selector de obra -->
-<form method="GET" action="" class="mb-4">
+<form method="GET" action="">  <!-- Asegúrate de que esta línea esté presente -->
   <label for="obra-select">Seleccione una obra:</label>
   <select id="obra-select" name="obra_id" onchange="this.form.submit()">
-    <option value="">Seleccionar obra</option>
-    {% for obra in obras %}
-    <option value="{{ obra.id }}" {% if obra.id|stringformat:"s" == request.GET.obra_id %}selected{% endif %}>{{ obra.nombre }}</option>
-    {% endfor %}
+      <option value="">Seleccionar obra</option>
+
+      {% for obra in obras %}
+      <option value="{{ obra.id }}" {% if obra.id == request.GET.obra_id %}selected{% endif %}>
+          {{ obra.nombre }}
+      </option>
+      {% endfor %}
   </select>
+  <noscript><input type="submit" value="Cargar"></noscript>
 </form>
 
 <div class="flex justify-center">
@@ -22,6 +26,9 @@
       <p class="text-x pb-6 flex items-center">
         <i class="fas fa-list mr-3"></i>Crear Empleado
       </p>
+      <div>
+        <a href="{% url 'reporte_asistencia_pdf' obra_id=obra.id %}" class="btn btn-primary">Descargar Reporte de Asistencia PDF</a>
+    </div>
       <!-- Formulario de creación de empleado -->
       <form method="post" enctype="multipart/form-data">
         {% csrf_token %}

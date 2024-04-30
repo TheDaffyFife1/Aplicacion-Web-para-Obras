@@ -5,10 +5,10 @@
 {% block content %}
 <h1 class="w-full text-3xl text-black pb-6">Registro</h1> <!-- Añadido text-center para centrar el título -->
 
-<div class="flex justify-center"> <!-- Div añadido para centrar el contenido -->
-  <div class="flex flex-wrap justify-center"> <!-- Ajuste para mantener el contenido centrado y responsivo -->
-    <div class="w-full lg:w-1/2 my-6 px-4"> <!-- Ajustado para centrar y mantener el padding en dispositivos más grandes -->
-      <p class="text-x pb-6 flex justify-center items-center"> <!-- Ajuste para centrar el texto -->
+<div class="flex justify-center">
+  <div class="w-full max-w-lg"> <!-- Establece un ancho máximo para pantallas más grandes -->
+    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+      <p class="text-x pb-6 flex items-center">
         <i class="fas fa-list mr-3"></i>Formulario de Registro
       </p>
       <div class="leading-loose">
@@ -29,6 +29,15 @@
           <br>
           <button type="submit" class="px-4 py-1 text-white font-light tracking-wider bg-gray-900 rounded">Register</button>
         </form>
+        {% if messages %}
+          <div class="messages">
+            {% for message in messages %}
+              <div class="{{ message.tags }} message">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
       </div>
     </div>
   </div>

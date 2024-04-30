@@ -30,6 +30,10 @@ from django.utils.timezone import now
 from django.db.models import F, FloatField, ExpressionWrapper, Case, When, Value, IntegerField
 from django.views.decorators.cache import never_cache
 from calendar import monthrange
+from dateutil.relativedelta import relativedelta
+from weasyprint import HTML, CSS
+from django.template.loader import render_to_string
+from django.http import HttpResponse
 
 
 @login_required
@@ -59,8 +63,10 @@ def admin_dashboard(request):
 def register(request):
     if request.user.userprofile.role != ADMIN_ROLE:
         return HttpResponseForbidden("No tienes permiso para ver esta página.")
+
+    form = RegistrationForm(request.POST or None)  # Inicializa el formulario con datos POST o vacío
+
     if request.method == 'POST':
-        form = RegistrationForm(request.POST)
         if form.is_valid():
             try:
                 # Intenta crear el usuario y su perfil de usuario correspondiente
@@ -80,16 +86,14 @@ def register(request):
                     login(request, user)  # Inicia sesión del usuario
                     return redirect('accesos')  # Redirecciona según el rol del usuario
                 else:
-                    # Si el UserProfile ya existe, podrías redireccionar al usuario a una página de error o de inicio
-                    # O mostrar un mensaje de error en la misma página de registro
+                    # Si el UserProfile ya existe, muestra un mensaje de error
                     form.add_error(None, 'El usuario ya tiene un perfil asignado.')
+                    form = RegistrationForm()  # Resetea el formulario después de un error
             except IntegrityError as e:
-                # Añade un mensaje de error al formulario si hay un error de integridad (por ejemplo, un duplicado)
+                # Añade un mensaje de error al formulario si hay un error de integridad
                 form.add_error(None, f'Ocurrió un error de integridad: {e}')
-            
-    else:
-        form = RegistrationForm()
-    
+                form = RegistrationForm()  # Resetea el formulario después de un error
+
     return render(request, 'admin/registro.html', {'form': form})
 
 @login_required
@@ -188,70 +192,6 @@ def lista_user_profiles(request):
     user_profiles = UserProfile.objects.filter(role__in=[RH_ROLE, USER_ROLE])
     return render(request, 'admin/lista_user_profiles.html', {'user_profiles': user_profiles})
 
-
-@login_required
-def attendance_by_week_project(request):
-    # Leer parámetros de la petición
-    time_range = request.GET.get('time_range', 'weekly')
-    conjunto = int(request.GET.get('conjunto', 1))
-    today = timezone.now().date()
-
-    if time_range == 'weekly':
-        week_start = today - timedelta(days=today.weekday() + 7 * (conjunto - 1))
-        week_end = week_start + timedelta(days=6)
-    elif time_range == 'monthly':
-        week_start = today.replace(day=1)
-        week_end = today.replace(day=1) + timedelta(days=monthrange(today.year, today.month)[1] - 1)
-    elif time_range == 'multiweek':
-        start_date = today - timedelta(days=today.weekday() + 7 * (conjunto - 1))
-        end_date = start_date + timedelta(days=7 * conjunto - 1)
-
-    # Ajustar la consulta para calcular asistencia semanal por proyecto
-    # Usando min() para asegurarnos de que fecha_inicio__lte utiliza la fecha más temprana posible
-    earliest_start = min(today, week_end)
-    attendance_data = Obra.objects.filter(
-        fecha_inicio__lte=earliest_start,
-        fecha_fin__gte=week_start
-    ).annotate(
-        full_time=Count(
-            Case(
-                When(
-                    empleado__asistencia__entrada__isnull=False,
-                    empleado__asistencia__salida__isnull=False,
-                    empleado__asistencia__fecha__range=(week_start, week_end),
-                    then=1
-                )
-            )
-        ),
-        part_time=Count(
-            Case(
-                When(
-                    empleado__asistencia__entrada__isnull=False,
-                    empleado__asistencia__salida__isnull=True,
-                    empleado__asistencia__fecha__range=(week_start, week_end),
-                    then=1
-                )
-            )
-        ),
-        not_attended=Count(
-            Case(
-                When(
-                    empleado__asistencia__entrada__isnull=True,
-                    empleado__asistencia__fecha__range=(week_start, week_end),
-                    then=1
-                )
-            )
-        ),
-        total_employees=Count('empleado', distinct=True)
-    ).values('nombre', 'full_time', 'part_time', 'not_attended', 'total_employees')
-
-    for obra in attendance_data:
-        obra['not_attended'] = obra['total_employees'] - (obra['full_time'] + obra['part_time'])
-
-    attendance_data = list(attendance_data)
-
-    return JsonResponse(attendance_data, safe=False)
-
 #Progreso de las obras Administrador
 @login_required
 def progreso_obras(request):
@@ -289,12 +229,85 @@ def progreso_obras(request):
         return JsonResponse({'error': str(e)}, status=500)  
     
 @login_required
+def attendance_by_week_project(request):
+    # Retrieve request parameters
+    time_range = request.GET.get('time_range', 'weekly')
+    conjunto = int(request.GET.get('conjunto', 1))
+    today = timezone.now().date()
+
+    # Determine the time range for the query
+    if time_range == 'weekly':
+        week_start = today - timedelta(days=today.weekday() + 7 * (conjunto - 1))
+        week_end = week_start + timedelta(days=6)
+    elif time_range == 'monthly':
+        week_start = today.replace(day=1)
+        week_end = week_start + relativedelta(months=1, days=-1)
+    elif time_range == 'multiweek':
+        week_start = today - timedelta(days=today.weekday() + 7 * (conjunto - 1))
+        week_end = week_start + timedelta(days=7 * conjunto - 1)
+
+    # Prepare the response dictionary
+    response_data = {
+        'weekly_data': [],
+        'daily_data': []
+    }
+
+    # Get the relevant projects for the time range
+    projects = Obra.objects.filter(fecha_inicio__lte=week_end, fecha_fin__gte=week_start)
+
+    # Calculate total employees per project
+    for project in projects:
+        project_data = {
+            'project_name': project.nombre,
+            'daily_attendance': []
+        }
+        
+        total_employees = project.empleado_set.count()
+        project_data['total_employees'] = total_employees
+
+        # Calculate daily attendance details
+        for single_date in (week_start + timedelta(n) for n in range((week_end - week_start).days + 1)):
+            attendees = project.empleado_set.filter(
+                asistencias__fecha=single_date,
+                asistencias__entrada__isnull=False,
+                asistencias__salida__isnull=False
+            ).distinct()
+            attended_count = attendees.count()
+
+            half_day_attendees = project.empleado_set.filter(
+                asistencias__fecha=single_date,
+                asistencias__entrada__isnull=False,
+                asistencias__salida__isnull=True
+            ).distinct()
+            half_day_count = half_day_attendees.count()
+
+            not_attended_count = total_employees - attended_count - half_day_count
+
+            project_data['daily_attendance'].append({
+                'date': single_date,
+                'attended': attended_count,
+                'not_attended': not_attended_count,
+                'half_day': half_day_count
+            })
+
+        # Add project data to weekly data
+        response_data['weekly_data'].append(project_data)
+
+    # Summarize weekly data
+    for project in response_data['weekly_data']:
+        weekly_not_attended = sum(day['not_attended'] for day in project['daily_attendance'])
+        project['weekly_not_attended'] = weekly_not_attended
+
+    return JsonResponse(response_data, safe=False)
+
+
+@login_required
 def summary_week_data(request):
     time_range = request.GET.get('time_range', 'weekly')
     conjunto = int(request.GET.get('conjunto', 1))
-    today = now().date()
+    today = timezone.now().date()
 
-    start_date, end_date = None, None
+    # Time range calculations
     if time_range == 'weekly':
         start_date = today - timedelta(days=today.weekday() + 7 * (conjunto - 1))
         end_date = start_date + timedelta(days=6)
@@ -307,43 +320,64 @@ def summary_week_data(request):
         start_date = today - timedelta(days=today.weekday() + 7 * (conjunto - 1))
         end_date = start_date + timedelta(days=7 * conjunto - 1)
 
-    if start_date is None or end_date is None:
+    if not start_date or not end_date:
         return JsonResponse({'error': 'Invalid time range.'}, status=400)
 
-    # Asegurándose de que solo se incluyan obras que han comenzado en o antes de la fecha actual o el inicio del intervalo
-    active_obras = Obra.objects.filter(
-        Q(fecha_inicio__lte=today) & (Q(fecha_inicio__lte=end_date) & Q(fecha_fin__gte=start_date))
+    # Querying active projects and employees
+    active_projects = Obra.objects.filter(
+        Q(fecha_inicio__lte=end_date) & Q(fecha_fin__gte=start_date)
     )
-    active_projects_id = active_obras.values('id')
+    active_projects_id = active_projects.values_list('id', flat=True)
 
+    # Calculating payments and handling half-days
     valid_attendances = Asistencia.objects.filter(
-        fecha__range=(start_date, end_date),
-        entrada__isnull=False,
-        salida__isnull=False,
-        empleado__obra__id__in=active_projects_id
-    ).values('empleado', 'fecha').annotate(daily_payment=Sum(F('empleado__sueldo') / 6)).order_by('empleado')
+    fecha__range=(start_date, end_date),
+    entrada__isnull=False,
+    empleado__obra__id__in=active_projects_id
+).values('empleado', 'fecha').annotate(
+    daily_payment=ExpressionWrapper(
+        Coalesce(Sum(
+            ExpressionWrapper(F('empleado__sueldo') / 6, output_field=DecimalField()),
+            filter=Q(salida__isnull=False)
+        ), 0) + Coalesce(Sum(
+            ExpressionWrapper(F('empleado__sueldo') / 12, output_field=DecimalField()),  # Assuming half pay for half-days
+            filter=Q(salida__isnull=True)
+        ), 0),
+        output_field=DecimalField()
+    )
+).order_by('empleado')
 
     total_payment = sum(attendance['daily_payment'] for attendance in valid_attendances) if valid_attendances else 0.0
     total_payment = round(total_payment, 2)
-    total_payment_float = float(total_payment)  # Convertir Decimal a float
+    total_payment_float = float(total_payment)
 
-    active_employees_count = Empleado.objects.filter(obra__in=active_projects_id).distinct().count()
+    active_employees_count = Empleado.objects.filter(obra__id__in=active_projects_id).distinct().count()
 
-    data = attendance_by_week_project(request)
-    data = json.loads(data.content)
+    # Fetching and using attendance data
+    attendance_response = attendance_by_week_project(request)
+    attendance_data = json.loads(attendance_response.content.decode('utf-8'))
 
-    asistencia = [d['full_time'] + d['part_time'] for d in data]
-    total = [d['total_employees'] for d in data]
-    porcentaje = (sum(asistencia) / sum(total) * 100) if total and sum(total) > 0 else 0
-    porcentaje = min(porcentaje, 100)  # Asegura que el porcentaje no sea mayor que 100
-    print("Total payment type:", type(total_payment_float))
-    # En Django
+    # Calculating attendance metrics
+    total_attended = 0
+    total_half_days = 0
+    total_possible_attendances = 0
+
+    for project in attendance_data['weekly_data']:
+        project_attended = sum(day['attended'] for day in project['daily_attendance'])
+        project_half_days = sum(day['half_day'] for day in project['daily_attendance'])
+        total_attended += project_attended
+        total_half_days += project_half_days
+        total_possible_attendances += project['total_employees'] * ((end_date - start_date).days + 1)
+
+    # Calculating attendance percentage
+    attendance_percentage = ((total_attended + 0.5 * total_half_days) / total_possible_attendances * 100) if total_possible_attendances > 0 else 0
+
     return JsonResponse({
         'data': {
-            'active_projects': active_obras.count(),
+            'active_projects': active_projects.count(),
             'active_employees': active_employees_count,
             'total_payment_for_week': total_payment_float,
-            'attendance_percentage': int(porcentaje)
+            'attendance_percentage': int(attendance_percentage)
         }
     }, safe=False)
 
@@ -480,7 +514,7 @@ def lista_empleados(request):
                 empleados = Empleado.objects.filter(obra=obra)
                 return render(request, 'rh/lista_empleados.html', {'empleados': empleados, 'obra': obra, 'obras': obras})
             else:
-                # Si no se especifica obra_id, mostrar todas las obras pero sin seleccionar ninguna específicamente
+                # Returning obras but no empleados if obra_id is not specified
                 return render(request, 'rh/lista_empleados.html', {'obras': obras})
         else:
             return HttpResponseForbidden("Este usuario de RH no tiene obras asignadas.")
@@ -504,7 +538,7 @@ def crear_empleado(request):
                 empleado = form.save(commit=False)
                 empleado.obra = obra  # Directly assign the obra object
                 empleado.save()
-                return redirect(f'/empleados    ?obra_id={obra_id}')
+                return redirect(f'/empleados?obra_id={obra_id}')
         else:
             # Si no hay un obra_id en GET o no estamos en POST, mostramos un formulario vacío o preseleccionado
             initial_data = {'obra': obra} if obra else {}
@@ -519,7 +553,7 @@ def crear_empleado(request):
             'form': form,
             'sueldos_base': sueldos_base_json,
             'obras': obras,
-            'selected_obra': obra
+               'selected_obra': obra
         })
     else:
         return HttpResponseForbidden("No tienes permiso para ver esta página.")
@@ -540,72 +574,128 @@ def editar_empleado(request, empleado_id):
     return render(request, 'rh/editar_empleado.html', {'form': form, 'empleado': empleado})
 
 @login_required
-@never_cache  # Asegura que las respuestas de esta vista no sean almacenadas en cache.
 def reporte_asistencia(request):
     user_profile = request.user.userprofile
-    if user_profile.role == RH_ROLE:
-        obras = user_profile.obras.all()
-        if obras.exists():  # Verificar si el usuario tiene obras asignadas
-            obra_id = request.GET.get('obra_id')
-            if obra_id:
-                obra = get_object_or_404(Obra, id=obra_id)
-                empleados = Empleado.objects.filter(obra=obra)
-
-                hoy = timezone.localtime().date()
-                inicio_semana = hoy - timedelta(days=hoy.weekday())  # Lunes
-                fin_semana = inicio_semana + timedelta(days=5)  # Sábado
-
-                asistencias_semana_actual = Asistencia.objects.filter(
-                    empleado__obra=obra,
-                    fecha__range=(inicio_semana, fin_semana)
-                ).select_related('empleado').order_by('fecha')
-
-                empleados_context = {empleado.id: {
-                    'nombre': empleado.nombre + " " + empleado.apellido,
-                    'foto_url': empleado.fotografia.url if empleado.fotografia else None,
-                    'sueldo_total': empleado.sueldo,
-                    'asistencias': {dia: {'entrada': None, 'salida': None, 'foto_dia': None, 'sueldo_diario': 0} for dia in range(6)}
-                } for empleado in empleados}
-
-                for asistencia in asistencias_semana_actual:
-                    dia_semana = asistencia.fecha.weekday()
-                    empleado_context = empleados_context.get(asistencia.empleado_id)
-                    if empleado_context:  # Verifica si el empleado está en la obra antes de proceder
-                        empleado_context['asistencias'][dia_semana] = {
-                            'entrada': asistencia.entrada,
-                            'salida': asistencia.salida,
-                            'foto_dia': asistencia.foto.url if asistencia.foto else None
-                        }
-
-                for datos in empleados_context.values():
-                    sueldo_diario_completo = datos['sueldo_total'] / 6
-                    total_semanal = 0
-                    for asistencia in datos['asistencias'].values():
-                        if asistencia['entrada'] and asistencia['salida']:
-                            asistencia['sueldo_diario'] = sueldo_diario_completo
-                        elif asistencia['entrada'] or asistencia['salida']:
-                            asistencia['sueldo_diario'] = sueldo_diario_completo / 2
-                        total_semanal += asistencia.get('sueldo_diario', 0)
-                    datos['total_semanal'] = total_semanal
-
-                context = {
-                    'empleados_context': empleados_context.values(),
-                    'obra': obra,
-                    'inicio_semana': inicio_semana,
-                    'fin_semana': fin_semana
-                }
-
-                return render(request, 'rh/reporte_asistencia.html', context)
-            else:
-                # Si no se especifica obra_id, mostrar todas las obras pero sin seleccionar ninguna específicamente
-                return render(request, 'rh/reporte_asistencia.html', {'obras': obras})
-        else:
-            return HttpResponseForbidden("Este usuario de RH no tiene obras asignadas.")
-    else:
+    if user_profile.role != RH_ROLE:
         return HttpResponseForbidden("No tienes permiso para ver esta página.")
 
+    obras = user_profile.obras.all()
+    if not obras.exists():
+        return HttpResponseForbidden("Este usuario de RH no tiene obras asignadas.")
 
+    obra_id = request.GET.get('obra_id')
+    if not obra_id:
+        # No obra_id provided, show the page to select an obra
+        return render(request, 'rh/reporte_asistencia.html', {'obras': obras})
 
+    obra = get_object_or_404(Obra, id=obra_id)
+    empleados = Empleado.objects.filter(obra=obra)
+
+    hoy = timezone.localtime().date()
+    inicio_semana = hoy - timedelta(days=hoy.weekday())  # Lunes
+    fin_semana = inicio_semana + timedelta(days=5)  # Sábado
+
+    asistencias_semana_actual = Asistencia.objects.filter(
+        empleado__obra=obra,
+        fecha__range=(inicio_semana, fin_semana)
+    ).select_related('empleado').order_by('fecha')
+
+    empleados_context = {
+        empleado.id: {
+            'nombre': empleado.nombre + " " + empleado.apellido,
+            'foto_url': empleado.fotografia.url if empleado.fotografia else None,
+            'sueldo_total': empleado.sueldo,
+            'asistencias': {dia: {'entrada': None, 'salida': None, 'foto_dia': None, 'sueldo_diario': 0} for dia in range(6)}
+        } for empleado in empleados
+    }
+
+    for asistencia in asistencias_semana_actual:
+        dia_semana = asistencia.fecha.weekday()
+        empleado_context = empleados_context.get(asistencia.empleado_id)
+        if empleado_context:
+            empleado_context['asistencias'][dia_semana] = {
+                'entrada': asistencia.entrada,
+                'salida': asistencia.salida,
+                'foto_dia': asistencia.foto.url if asistencia.foto else None,
+                'sueldo_diario': empleado_context['sueldo_total'] / 6
+            }
+            if not (asistencia.entrada and asistencia.salida):
+                empleado_context['asistencias'][dia_semana]['sueldo_diario'] /= 2
+
+    for datos in empleados_context.values():
+        total_semanal = sum(asistencia['sueldo_diario'] for asistencia in datos['asistencias'].values())
+        datos['total_semanal'] = total_semanal
+
+    context = {
+        'empleados_context': empleados_context.values(),
+        'obra': obra,
+        'inicio_semana': inicio_semana,
+        'fin_semana': fin_semana,
+            'obra_id': obra_id,  # Asegúrate de pasar obra_id
+
+        'obras': obras  # Include obras to maintain the drop-down list state
+    }
+
+    return render(request, 'rh/reporte_asistencia.html', context)
+
+@login_required
+def reporte_asistencia_pdf(request, obra_id):
+    obra = get_object_or_404(Obra, id=obra_id)
+    empleados = Empleado.objects.filter(obra=obra)
+
+    hoy = timezone.localtime().date()
+    inicio_semana = hoy - timedelta(days=hoy.weekday())  # Lunes
+    fin_semana = inicio_semana + timedelta(days=5)  # Sábado
+
+    asistencias_semana_actual = Asistencia.objects.filter(
+        empleado__obra=obra,
+        fecha__range=(inicio_semana, fin_semana)
+    ).select_related('empleado').order_by('fecha')
+
+    empleados_context = {
+        empleado.id: {
+            'nombre': empleado.nombre + " " + empleado.apellido,
+            'foto_url': empleado.fotografia.url if empleado.fotografia else None,
+            'sueldo_total': empleado.sueldo,
+            'asistencias': {dia: {'entrada': None, 'salida': None, 'foto_dia': None, 'sueldo_diario': 0} for dia in range(6)}
+        } for empleado in empleados
+    }
+
+    for asistencia in asistencias_semana_actual:
+        dia_semana = asistencia.fecha.weekday()
+        empleado_context = empleados_context.get(asistencia.empleado_id)
+        if empleado_context:
+            empleado_context['asistencias'][dia_semana] = {
+                'entrada': asistencia.entrada,
+                'salida': asistencia.salida,
+                'foto_dia': asistencia.foto.url if asistencia.foto else None,
+                'sueldo_diario': empleado_context['sueldo_total'] / 6
+            }
+            if not (asistencia.entrada and asistencia.salida):
+                empleado_context['asistencias'][dia_semana]['sueldo_diario'] /= 2
+
+    for datos in empleados_context.values():
+        total_semanal = sum(asistencia['sueldo_diario'] for asistencia in datos['asistencias'].values())
+        datos['total_semanal'] = total_semanal
+
+    context = {
+        'empleados': empleados_context.values(),
+        'obra': obra,
+        'week_start': inicio_semana,
+        'week_end': fin_semana
+    }
+
+    # Render the HTML template with data
+    html_string = render_to_string('rh/reporte_asistencia_pdf.html', context)
+
+    # Generate the PDF
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{obra.nombre}_reporte_asistencia_{hoy.strftime("%Y%m%d")}.pdf"'
+    HTML(string=html_string).write_pdf(response, stylesheets=[
+        CSS(string='@page { size: A4 landscape; margin: 1cm; } body { font-family: Arial; }')
+    ])
+
+    return response
 
 @login_required
 def asistencia_obras(request):

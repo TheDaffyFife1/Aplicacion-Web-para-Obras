@@ -48,7 +48,8 @@ INSTALLED_APPS = [
 
 
 ]
-
+USE_L10N = True
+USE_THOUSAND_SEPARATOR = True
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',

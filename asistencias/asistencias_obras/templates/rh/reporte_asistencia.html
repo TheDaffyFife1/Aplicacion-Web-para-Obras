@@ -18,7 +18,13 @@
     <p class="text-xl pb-3 flex items-center">
         <i class="fas fa-list mr-3"></i> Reporte de Asistencia: Semana {{ semana_actual }} del mes
     </p>
-
+    {% if obra_id %}
+    <a href="{% url 'reporte_asistencia_pdf' obra_id=obra_id %}" 
+    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+     Descargar Reporte de Asistencia PDF
+ </a>{% else %}
+    <p>Seleccione una obra para ver el reporte.</p>
+{% endif %}
 <br>
 <br>
     <div class="bg-white overflow-auto">
