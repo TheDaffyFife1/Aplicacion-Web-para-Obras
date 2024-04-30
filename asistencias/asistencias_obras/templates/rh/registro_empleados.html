@@ -26,9 +26,6 @@
       <p class="text-x pb-6 flex items-center">
         <i class="fas fa-list mr-3"></i>Crear Empleado
       </p>
-      <div>
-        <a href="{% url 'reporte_asistencia_pdf' obra_id=obra.id %}" class="btn btn-primary">Descargar Reporte de Asistencia PDF</a>
-    </div>
       <!-- Formulario de creación de empleado -->
       <form method="post" enctype="multipart/form-data">
         {% csrf_token %}

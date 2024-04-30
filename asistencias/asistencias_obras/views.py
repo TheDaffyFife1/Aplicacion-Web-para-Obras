@@ -886,35 +886,35 @@ def attendance_by_week_project_RH(request):
     # Ensure that the attendance_data QuerySet is properly used
     attendance_data = Obra.objects.filter(id=obra_id).annotate(
         full_time=Count(
-            Case(
-                When(
-                    Q(empleado__asistencia__entrada__isnull=False) & 
-                    Q(empleado__asistencia__salida__isnull=False) & 
-                    Q(empleado__asistencia__fecha__range=(week_start, week_end)),
-                    then=1
-                )
-            )
-        ),
-        part_time=Count(
-            Case(
-                When(
-                    Q(empleado__asistencia__entrada__isnull=False) & 
-                    Q(empleado__asistencia__salida__isnull=True) & 
-                    Q(empleado__asistencia__fecha__range=(week_start, week_end)),
-                    then=1
-                )
-            )
-        ),
-        not_attended=Count(
-            Case(
-                When(
-                    Q(empleado__asistencia__entrada__isnull=True) & 
-                    Q(empleado__asistencia__fecha__range=(week_start, week_end)),
-                    then=1
-                )
+        Case(
+            When(
+                Q(empleado__asistencias__entrada__isnull=False) &  # Assuming 'asistencias' is the correct related_name
+                Q(empleado__asistencias__salida__isnull=False) &
+                Q(empleado__asistencias__fecha__range=(week_start, week_end)),
+                then=1
             )
         )
-    ).values('full_time', 'part_time', 'not_attended')[0]  # Use indexing after values()
+    ),
+    part_time=Count(
+        Case(
+            When(
+                Q(empleado__asistencias__entrada__isnull=False) &
+                Q(empleado__asistencias__salida__isnull=True) &
+                Q(empleado__asistencias__fecha__range=(week_start, week_end)),
+                then=1
+            )
+        )
+    ),
+    not_attended=Count(
+        Case(
+            When(
+                Q(empleado__asistencias__entrada__isnull=True) &
+                Q(empleado__asistencias__fecha__range=(week_start, week_end)),
+                then=1
+            )
+        )
+    )
+).values('full_time', 'part_time', 'not_attended')[0]
 
     active_employees_count = Empleado.objects.filter(obra=obra).distinct().count()
 
